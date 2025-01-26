@@ -1,0 +1,6 @@
+rpcEndpoint: "https://odyssey.storyrpc.io"
+zeroAddresses:
+  - "0x0000000000000000000000000000000000000000"
+vesting:
+  0: 250000000
+  1: 258620208
