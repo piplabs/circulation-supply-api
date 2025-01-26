@@ -24,8 +24,12 @@ Recommend: 1 core CPU &  256m MEM
     1. Single instance
     2. Index blocks and calculate accumulated burntBaseFee and stakeReward
     
+- entry point
+    go run /circulation-supply-api/scanner/main.go --config=/circulation-supply-api/config/odyssey_config.yaml
+
 - config
     1.rpcEndpoints
+
     
 - flow
     1. Fetch info of last iterated block from database. Iterate from last iterated block. If no such block, iterate from genesis block.
@@ -41,6 +45,9 @@ Recommend: 1 core CPU &  256m MEM
 - description
     1. Multiple instances
     2. Provide an HTTP interface `/circulating-supply` for users to query circulation volume.
+
+- entry point
+    go run /circulation-supply-api/api/main.go --config=/circulation-supply-api/config/odyssey_config.yaml
 
 - config
     1. rpcEndpoints
