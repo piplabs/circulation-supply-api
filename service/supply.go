@@ -11,7 +11,9 @@ import (
 )
 
 var (
-	genesisYear = 2025
+	genesisYear  = 2025
+	cachedTime   = time.Now()
+	cachedSupply string
 )
 
 // 1. Get latest block from database
@@ -21,6 +23,11 @@ var (
 // 5. Get circulating supply from vesting plan
 // 6. Calculate the total supply = circulating supply - totalBurntBaseFee - IPSentToZeroAddress + totalStakeReward
 func GetSupply() (string, error) {
+	// add cache, if last call is within 30 seconds, return the same result
+	if time.Since(cachedTime) < 30*time.Second && cachedSupply != "" {
+		return cachedSupply, nil
+	}
+
 	fee, err := dao.GetLatestAccumulatedFees()
 	if err != nil {
 		log.Error("Failed to get latest accumulated fees", "error", err)
@@ -67,5 +74,9 @@ func GetSupply() (string, error) {
 	supply.Add(supply, totalStakeReward)
 	log.Info("Show details - ", "circulatingSupply", circulatingSupply.Text('f', -1), "totalBurntBaseFee", totalBurntBaseFee.Text('f', -1), "IPSentToZeroAddress", ipSentToZeroAddress.Text('f', -1), "totalStakeReward", totalStakeReward.Text('f', -1), "supply", supply.Text('f', -1))
 
-	return supply.Text('f', 2), nil
+	ret := supply.Text('f', 2)
+	cachedSupply = ret
+	cachedTime = time.Now()
+
+	return ret, nil
 }
