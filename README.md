@@ -25,8 +25,7 @@ Recommend: 1 core CPU &  256m MEM
     2. Index blocks and calculate accumulated burntBaseFee and stakeReward
     
 - config
-    
-    rpcEndpoints
+    1.rpcEndpoints
     
 - flow
     1. Fetch info of last iterated block from database. Iterate from last iterated block. If no such block, iterate from genesis block.
@@ -44,19 +43,16 @@ Recommend: 1 core CPU &  256m MEM
     2. Provide an HTTP interface `/circulating-supply` for users to query circulation volume.
 
 - config
-    
-    rpcEndpoints
-    
-    zero addresses
-    
-    vesting schedule
+    1. rpcEndpoints
+    2. zero addresses
+    3. vesting schedule
     
 - flow
     1. User calls API `/circulating-supply`
-        1. If last call is within 5 seconds, return cached result
-        2. get `totalBurntBaseFee` and `totalStakeReward` and `blockNumber` from last iterated block from database
-        3. fetch `IPSentToZeroAddresses` in last iterated block through JSON RPC eth_getBalance
-        4. get `blockTimestamp`  by `blockNumber`  through JSON RPC eth_getBlockByNumber
-        5. calculate year & month of `blockTimestamp` → get `vestedCirculatingSupply` from configuration
-        6. `CirculatingSupply` = `vestedCirculatingSupply` - (`totalBurntBaseFee` + `IPSentToZeroAddresses`) + `totalStakeReward`
-        7. cache and return
+    2. If last call is within 30 seconds, return cached result
+    3. get `totalBurntBaseFee` and `totalStakeReward` and `blockNumber` from last iterated block from database
+    4. fetch `IPSentToZeroAddresses` in last iterated block through JSON RPC eth_getBalance
+    5. get `blockTimestamp`  by `blockNumber`  through JSON RPC eth_getBlockByNumber
+    6. calculate year & month of `blockTimestamp` → get `vestedCirculatingSupply` from configuration
+    7. `CirculatingSupply` = `vestedCirculatingSupply` - (`totalBurntBaseFee` + `IPSentToZeroAddresses`) + `totalStakeReward`
+    8. cache and return
