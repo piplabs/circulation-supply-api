@@ -10,12 +10,14 @@ import (
 var db *gorm.DB
 
 func InitDB() {
-	host := os.Getenv("HOST")
-	port := os.Getenv("PORT")
-	dbname := os.Getenv("DBNAME")
-	user := os.Getenv("USER")
-	password := os.Getenv("PASSWORD")
-	dsn := "host=" + host + " port=" + port + " dbname=" + dbname + " user=" + user + " password=" + password
+	// host := os.Getenv("HOST")
+	// port := os.Getenv("PORT")
+	// dbname := os.Getenv("DBNAME")
+	// user := os.Getenv("USER")
+	// password := os.Getenv("PASSWORD")
+	// dsn := "host=" + host + " port=" + port + " dbname=" + dbname + " user=" + user + " password=" + password
+
+	dsn := os.Getenv("DSN")
 
 	var err error
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
