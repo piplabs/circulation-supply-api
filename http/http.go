@@ -10,6 +10,7 @@ func StartHTTPServer() {
 	setupProbeRoutes(r)
 
 	r.GET("/circulating-supply", getSupply)
+
 	r.Run()
 }
 
@@ -22,10 +23,18 @@ func setupProbeRoutes(r *gin.Engine) {
 	})
 
 	r.GET("/ready", func(c *gin.Context) {
-    // TODO: check DB connection
+		// TODO: check DB connection
 		c.JSON(200, gin.H{
 			"ready":   true,
 			"service": "circulation-supply",
+		})
+	})
+
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"service": "circulation-supply-api",
+			"version": "0.1.0",
+			"status":  "healthy",
 		})
 	})
 }
