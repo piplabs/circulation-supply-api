@@ -19,10 +19,10 @@ RUN adduser -D -u 1000 appuser
 USER appuser
 
 COPY --from=builder --chown=appuser:appuser /app/bin/api /app/api
-COPY --chown=appuser:appuser config/odyssey_config.yaml /app/config.yaml
+COPY --chown=appuser:appuser config /app/config
 
 WORKDIR /app
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/api", "--config=/app/config.yaml"]
+ENTRYPOINT ["/app/api"]
