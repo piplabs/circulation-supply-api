@@ -11,9 +11,11 @@ import (
 )
 
 var (
-	genesisYear  = 2025
-	cachedTime   = time.Now()
-	cachedSupply string
+	genesisYear = 2025
+
+	cachedSupply  string
+	cachedTime    = time.Now()
+	cacheDuration = 30 * time.Second
 )
 
 // 1. Get latest block from database
@@ -24,7 +26,7 @@ var (
 // 6. Calculate the total supply = circulating supply - totalBurntBaseFee - IPSentToZeroAddress + totalStakeReward
 func GetSupply() (string, error) {
 	// add cache, if last call is within 30 seconds, return the same result
-	if time.Since(cachedTime) < 30*time.Second && cachedSupply != "" {
+	if time.Since(cachedTime) < cacheDuration && cachedSupply != "" {
 		return cachedSupply, nil
 	}
 
