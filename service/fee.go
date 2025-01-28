@@ -2,6 +2,7 @@ package service
 
 import (
 	"circulation-supply-api/dao"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -15,7 +16,7 @@ func saveAccumulatedFees(block uint64, totalBurntBaseFee *big.Float, totalStakeR
 func load() (uint64, *big.Float, *big.Float, error) {
 	fee, err := dao.GetLatestAccumulatedFees()
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 0, big.NewFloat(0).SetPrec(64), big.NewFloat(0).SetPrec(64), nil
 		}
 		return 0, big.NewFloat(0).SetPrec(64), big.NewFloat(0).SetPrec(64), err
@@ -28,5 +29,5 @@ func load() (uint64, *big.Float, *big.Float, error) {
 	if !b {
 		return 0, big.NewFloat(0).SetPrec(64), big.NewFloat(0).SetPrec(64), fmt.Errorf("error parsing total stake reward")
 	}
-	return fee.Number + 1, totalBurntBaseFee, totalStakeReward, nil
+	return fee.BlockNumber + 1, totalBurntBaseFee, totalStakeReward, nil
 }

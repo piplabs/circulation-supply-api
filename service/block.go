@@ -10,10 +10,6 @@ import (
 	"net/http"
 )
 
-type BlockResponse struct {
-	Result Block `json:"result"`
-}
-
 type Block struct {
 	Number        string       `json:"number"`
 	Time          string       `json:"timestamp"`
@@ -36,24 +32,44 @@ func getBlockByNumber(blockNumber string) (*Block, error) {
 		"id":      1,
 	}
 
-	payloadBytes, _ := json.Marshal(payload)
-	resp, err := http.Post(config.Conf.RpcEndpoint, "application/json", bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
+	response, err := rpcCall(payload)
 	if err != nil {
 		return nil, err
 	}
 
-	var blockResp BlockResponse
-	if err := json.Unmarshal(body, &blockResp); err != nil {
-		return nil, err
+	// current block is not mined yet
+	if response["result"] == nil {
+		return nil, nil
 	}
 
-	return &blockResp.Result, nil
+	blockData, ok := response["result"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to assert result as Block")
+	}
+
+	block := &Block{
+		Number:        blockData["number"].(string),
+		Time:          blockData["timestamp"].(string),
+		BaseFeePerGas: blockData["baseFeePerGas"].(string),
+		GasUsed:       blockData["gasUsed"].(string),
+	}
+
+	withdrawalsData, ok := blockData["withdrawals"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to parse withdrawals")
+	}
+	var withdrawals []Withdrawal
+	for _, withdrawal := range withdrawalsData {
+		withdrawalMap := withdrawal.(map[string]interface{})
+		withdrawals = append(withdrawals, Withdrawal{
+			Amount:    withdrawalMap["amount"].(string),
+			Validator: withdrawalMap["validatorIndex"].(string),
+			Address:   withdrawalMap["address"].(string),
+		})
+	}
+	block.Withdrawals = withdrawals
+
+	return block, nil
 }
 
 func getBalanceAtBlock(address string, blockNumber uint64) (*big.Int, error) {

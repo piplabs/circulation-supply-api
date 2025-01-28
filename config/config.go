@@ -10,9 +10,13 @@ import (
 var Conf *Config
 
 type Config struct {
-	RpcEndpoint   string          `yaml:"rpcEndpoint"`
-	Vesting       map[int]float64 `yaml:"vesting"`
-	ZeroAddresses []string        `yaml:"zeroAddresses"`
+	RpcEndpoint   string   `yaml:"rpcEndpoint"`
+	ZeroAddresses []string `yaml:"zeroAddresses"`
+
+	// Vesting schedule
+	VestingStartYear  int       `yaml:"vestingStartYear"`
+	VestingStartMonth int       `yaml:"vestingStartMonth"`
+	Vesting           []float64 `yaml:"vesting"` // each element represents the circulating supply for a month starting from "VestingStartYear/VestingStartMonth"
 }
 
 func LoadConfig(filePath string) (*Config, error) {

@@ -1,6 +1,8 @@
 rpcEndpoint: "https://internal.storyrpc.io"
 zeroAddresses:
   - "0x0000000000000000000000000000000000000000"
+vestingStartYear: 2025
+vestingStartMonth: 1
 vesting:
-  0: 250000000
-  1: 258620208
+  - 250000000
+  - 258620208

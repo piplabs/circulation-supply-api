@@ -2,7 +2,7 @@ package dao
 
 type AccumulatedFees struct {
 	ID                uint
-	Number            uint64
+	BlockNumber       uint64
 	TotalBurntBaseFee string
 	TotalStakeReward  string
 }
@@ -10,7 +10,7 @@ type AccumulatedFees struct {
 func SaveAccumulatedFees(block uint64, totalBurntBaseFee string, totalStakeReward string) error {
 	return db.Save(&AccumulatedFees{
 		ID:                1,
-		Number:            block,
+		BlockNumber:       block,
 		TotalBurntBaseFee: totalBurntBaseFee,
 		TotalStakeReward:  totalStakeReward,
 	}).Error

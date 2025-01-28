@@ -1,8 +1,6 @@
 package dao
 
 import (
-	"os"
-
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -10,14 +8,8 @@ import (
 var db *gorm.DB
 
 func InitDB() {
-	// host := os.Getenv("HOST")
-	// port := os.Getenv("PORT")
-	// dbname := os.Getenv("DBNAME")
-	// user := os.Getenv("USER")
-	// password := os.Getenv("PASSWORD")
-	// dsn := "host=" + host + " port=" + port + " dbname=" + dbname + " user=" + user + " password=" + password
-
-	dsn := os.Getenv("DSN")
+	// dsn := os.Getenv("DSN")
+	dsn := "host=localhost port=5432 dbname=postgres user=postgres password=123 "
 
 	var err error
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})

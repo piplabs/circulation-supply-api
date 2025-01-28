@@ -1,14 +1,14 @@
 package main
 
 import (
+	"circulation-supply-api/api/http"
 	"circulation-supply-api/config"
 	"circulation-supply-api/dao"
-	"circulation-supply-api/http"
 	"flag"
 	"log"
 )
 
-func init() {
+func main() {
 	configFile := flag.String("config", "", "Path to the configuration file")
 	flag.Parse()
 
@@ -18,8 +18,6 @@ func init() {
 		log.Fatalf("Error loading config: %v", err)
 	}
 	dao.InitDB()
-}
 
-func main() {
 	http.StartHTTPServer()
 }
