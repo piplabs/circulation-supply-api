@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	withdrawalTypeUnstake     = "0x0"
 	withdrawalTypeStakeReward = "0x1"
 	withdrawalTypeUBI         = "0x2"
 )
@@ -88,7 +89,9 @@ func calculateBurntIP(baseFeePerGasHex, gasUsedHex string) *big.Float {
 func calculateStakeReward(withdrawals []Withdrawal) *big.Float {
 	totalReward := big.NewFloat(0).SetPrec(64)
 	for _, withdrawal := range withdrawals {
-		if withdrawal.Validator != withdrawalTypeStakeReward && withdrawal.Address != withdrawalTypeUBI {
+		if withdrawal.Validator != withdrawalTypeUnstake &&
+			withdrawal.Validator != withdrawalTypeStakeReward &&
+			withdrawal.Address != withdrawalTypeUBI {
 			continue
 		}
 		amount, _ := new(big.Int).SetString(withdrawal.Amount[2:], 16)
