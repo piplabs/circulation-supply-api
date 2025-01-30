@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	genesisYear = 2025
+	genesisYear  = 2025
+	genesisMonth = 1
 
 	cachedSupply  string
 	cachedTime    = time.Now()
@@ -35,14 +36,24 @@ func GetSupply() (string, error) {
 		log.Error("Failed to get latest accumulated fees", "error", err)
 		return "", err
 	}
-	blockNumber := fee.Number
-	totalBurntBaseFee, _, _ := new(big.Float).Parse(fee.TotalBurntBaseFee, 10)
-	totalStakeReward, _, _ := new(big.Float).Parse(fee.TotalStakeReward, 10)
+	blockNumber := fee.BlockNumber
+	totalBurntBaseFee, b := new(big.Float).SetString(fee.TotalBurntBaseFee)
+	if !b {
+		return "", fmt.Errorf("error parsing total burnt base fee")
+	}
+	totalStakeReward, b := new(big.Float).SetString(fee.TotalStakeReward)
+	if !b {
+		return "", fmt.Errorf("error parsing total stake reward")
+	}
 
 	block, err := getBlockByNumber(fmt.Sprintf("0x%x", blockNumber))
 	if err != nil {
 		log.Error("Failed to get block by number", "blockNumber", blockNumber, "error", err)
 		return "", err
+	}
+	if block == nil {
+		log.Error("Block not found", "blockNumber", blockNumber)
+		return "", fmt.Errorf("block not found")
 	}
 	blockTimestamp, _ := new(big.Int).SetString(block.Time, 0)
 
@@ -58,9 +69,9 @@ func GetSupply() (string, error) {
 	}
 	ipSentToZeroAddress = new(big.Float).Quo(new(big.Float).SetInt(totalBalance), big.NewFloat(1e18))
 
-	// calculate months passed since 2025-01 (genesis)
+	// calculate months passed since genesis
 	year, month, _ := time.Unix(blockTimestamp.Int64(), 0).UTC().Date()
-	monthsPassed := (year-genesisYear)*12 + int(month) - 1
+	monthsPassed := (year-genesisYear)*12 + int(month-time.Month(genesisMonth))
 	var circulatingSupply *big.Float
 	if monthsPassed < 0 {
 		// this should never happen in mainnet

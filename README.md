@@ -25,7 +25,7 @@ Recommend: 1 core CPU &  256m MEM
     2. Index blocks and calculate accumulated burntBaseFee and stakeReward
     
 - entry point
-    go run /circulation-supply-api/scanner/main.go --config=/circulation-supply-api/config/odyssey_config.yaml
+    go run /circulation-supply-api/scanner/main.go --config=/circulation-supply-api/config/odyssey.yaml
 
 - config
     1.rpcEndpoints
@@ -47,7 +47,7 @@ Recommend: 1 core CPU &  256m MEM
     2. Provide an HTTP interface `/circulating-supply` for users to query circulation volume.
 
 - entry point
-    go run /circulation-supply-api/api/main.go --config=/circulation-supply-api/config/odyssey_config.yaml
+    go run /circulation-supply-api/api/main.go --config=/circulation-supply-api/config/odyssey.yaml
 
 - config
     1. rpcEndpoints

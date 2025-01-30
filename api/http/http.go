@@ -10,8 +10,10 @@ func StartHTTPServer() {
 	setupProbeRoutes(r)
 
 	r.GET("/circulating-supply", getSupply)
-
-	r.Run()
+	err := r.Run()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func setupProbeRoutes(r *gin.Engine) {

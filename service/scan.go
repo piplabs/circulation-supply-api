@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	withdrawalTypeUnstake     = "0x0"
 	withdrawalTypeStakeReward = "0x1"
 	withdrawalTypeUBI         = "0x2"
 )
@@ -37,19 +38,23 @@ func Start() {
 
 // watchBlocks fetches the latest block from the RPC endpoint and sends it to the blockEventCh channel
 func watchBlocks() {
-	for {
+	ticker := time.NewTicker(time.Millisecond * 100)
+	defer ticker.Stop()
+
+	for range ticker.C {
 		block, err := getBlockByNumber(fmt.Sprintf("0x%x", currentBlock))
 		if err != nil {
 			log.Warn("Error fetching block", "error", err)
 			time.Sleep(time.Second * 5)
 			continue
 		}
-
-		if block.Number == "" {
-			time.Sleep(time.Second * 2)
+		// current block is not mined yet
+		if block == nil {
+			time.Sleep(time.Second * 5)
 			continue
 		}
 		blockEventCh <- block
+		currentBlock++
 	}
 }
 
@@ -65,11 +70,10 @@ func handleBlock() {
 		if currentBlock > 0 && currentBlock%100 == 0 {
 			err := saveAccumulatedFees(currentBlock, totalBurntBaseFee, totalStakeReward)
 			if err != nil {
-				log.Warn("Error saving data", "error", err)
+				log.Error("Error saving data", "error", err)
 			}
 			log.Info("BlockNumber", "number", currentBlock, "burntBaseFee", burntIP.Text('f', -1), "totalBurntBaseFee", totalBurntBaseFee.Text('f', -1), "stakeReward", stakeReward.Text('f', -1), "totalStake", totalStakeReward.Text('f', -1))
 		}
-		currentBlock++
 	}
 }
 
@@ -85,7 +89,9 @@ func calculateBurntIP(baseFeePerGasHex, gasUsedHex string) *big.Float {
 func calculateStakeReward(withdrawals []Withdrawal) *big.Float {
 	totalReward := big.NewFloat(0).SetPrec(64)
 	for _, withdrawal := range withdrawals {
-		if withdrawal.Validator != withdrawalTypeStakeReward && withdrawal.Address != withdrawalTypeUBI {
+		if withdrawal.Validator != withdrawalTypeUnstake &&
+			withdrawal.Validator != withdrawalTypeStakeReward &&
+			withdrawal.Address != withdrawalTypeUBI {
 			continue
 		}
 		amount, _ := new(big.Int).SetString(withdrawal.Amount[2:], 16)
