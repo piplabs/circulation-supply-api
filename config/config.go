@@ -10,13 +10,22 @@ import (
 var Conf *Config
 
 type Config struct {
-	RpcEndpoint   string   `yaml:"rpcEndpoint"`
+	// archive node rpc endpoint
+	RpcEndpoint string `yaml:"rpcEndpoint"`
+
+	// zero addresses are where the tokens are sent to and are considered as burned
 	ZeroAddresses []string `yaml:"zeroAddresses"`
 
-	// Vesting schedule
-	VestingStartYear  int       `yaml:"vestingStartYear"`
-	VestingStartMonth int       `yaml:"vestingStartMonth"`
-	Vesting           []float64 `yaml:"vesting"` // each element represents the circulating supply for a month starting from "VestingStartYear/VestingStartMonth"
+	// year when the vesting starts
+	VestingStartYear int `yaml:"vestingStartYear"`
+
+	// month when the vesting starts
+	VestingStartMonth int `yaml:"vestingStartMonth"`
+
+	// each element represents the circulating supply for a month starting from "VestingStartYear/VestingStartMonth"
+	// e.g. Vesting = [100, 200, 300] and VestingStartYear = 2025 and VestingStartMonth = 1, then the circulating supply
+	// for 2025/1 is 100, for 2025/2 is 200, for 2025/3 is 300.
+	Vesting []float64 `yaml:"vesting"`
 }
 
 func LoadConfig(filePath string) (*Config, error) {
@@ -35,6 +44,12 @@ func LoadConfig(filePath string) (*Config, error) {
 	// Validate config
 	if len(config.Vesting) == 0 {
 		return nil, fmt.Errorf("vesting schedule is empty")
+	}
+	if config.VestingStartYear == 0 {
+		return nil, fmt.Errorf("vestingStartYear is empty")
+	}
+	if config.VestingStartMonth == 0 {
+		return nil, fmt.Errorf("vestingStartMonth is empty")
 	}
 	if len(config.RpcEndpoint) == 0 {
 		return nil, fmt.Errorf("rpcEndpoint is empty")
