@@ -11,9 +11,6 @@ import (
 )
 
 var (
-	genesisYear  = 2025
-	genesisMonth = 1
-
 	cachedSupply  string
 	cachedTime    = time.Now()
 	cacheDuration = 30 * time.Second
@@ -71,7 +68,7 @@ func GetSupply() (string, error) {
 
 	// calculate months passed since genesis
 	year, month, _ := time.Unix(blockTimestamp.Int64(), 0).UTC().Date()
-	monthsPassed := (year-genesisYear)*12 + int(month-time.Month(genesisMonth))
+	monthsPassed := (year-config.Conf.VestingStartYear)*12 + int(month-time.Month(config.Conf.VestingStartMonth))
 	var circulatingSupply *big.Float
 	if monthsPassed < 0 {
 		// this should never happen in mainnet
