@@ -19,8 +19,8 @@ RUN adduser -D -u 1000 appuser
 USER appuser
 
 COPY --from=builder --chown=appuser:appuser /app/bin/scanner /app/scanner
-COPY --chown=appuser:appuser config/odyssey.yaml /app/config.yaml
+COPY --chown=appuser:appuser config /app/config
 
 WORKDIR /app
 
-ENTRYPOINT ["/app/scanner", "--config=/app/config.yaml"]
+ENTRYPOINT ["/app/scanner"]
