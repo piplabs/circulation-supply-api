@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'staging'
+      - 'main'
 
 env:
   APP_NAME: circulation-supply-api
@@ -14,11 +15,7 @@ jobs:
     name: Build and Push Image, Update Helm Chart
     runs-on: ubuntu-latest
 
-    # strategy:
-    #   matrix:
-    #     env: [staging, production]
-
-    environment: staging
+    environment: ${{ (github.ref_name == 'main') && 'production' || 'staging' }}
 
     steps:
       - name: Checkout Repository
@@ -38,8 +35,7 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           IMAGE_NAME=gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.APP_NAME }}:${{ github.sha }}
-          docker buildx build \
-            --platform linux/amd64 \
+          docker build \
             --push \
             --tag $IMAGE_NAME \
             -f ./dockerfiles/api.Dockerfile \
