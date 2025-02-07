@@ -1,4 +1,4 @@
-rpcEndpoint: "https://odyssey.storyrpc.io"
+rpcEndpoint: "https://internal-archive.aeneid.storyrpc.io"
 zeroAddresses:
   - "0x0000000000000000000000000000000000000000"
 vestingStartYear: 2025

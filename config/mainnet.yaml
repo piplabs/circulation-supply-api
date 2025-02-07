@@ -1,4 +1,4 @@
-rpcEndpoint: "https://internal.storyrpc.io"
+rpcEndpoint: "https://internal-archive.storyrpc.io/"
 zeroAddresses:
   - "0x0000000000000000000000000000000000000000"
 vestingStartYear: 2025
