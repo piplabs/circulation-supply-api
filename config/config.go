@@ -26,6 +26,8 @@ type Config struct {
 	// e.g. Vesting = [100, 200, 300] and VestingStartYear = 2025 and VestingStartMonth = 1, then the circulating supply
 	// for 2025/1 is 100, for 2025/2 is 200, for 2025/3 is 300.
 	Vesting []float64 `yaml:"vesting"`
+
+	GenesisTotalSupply float64 `yaml:"genesisTotalSupply"`
 }
 
 func LoadConfig(filePath string) (*Config, error) {
@@ -56,6 +58,9 @@ func LoadConfig(filePath string) (*Config, error) {
 	}
 	if len(config.ZeroAddresses) == 0 {
 		return nil, fmt.Errorf("zeroAddresses is empty")
+	}
+	if config.GenesisTotalSupply == 0 {
+		return nil, fmt.Errorf("genesis is empty")
 	}
 	return &config, nil
 }
