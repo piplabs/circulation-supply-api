@@ -9,7 +9,8 @@ func StartHTTPServer() {
 
 	setupProbeRoutes(r)
 
-	r.GET("/circulating-supply", getSupply)
+	r.GET("/circulating-supply", getCirculatingSupply)
+	r.GET("/total-supply", getTotalSupply)
 	err := r.Run()
 	if err != nil {
 		panic(err)
