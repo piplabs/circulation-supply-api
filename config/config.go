@@ -28,8 +28,6 @@ type Config struct {
 	Vesting []float64 `yaml:"vesting"`
 
 	GenesisTotalSupply float64 `yaml:"genesisTotalSupply"`
-
-	Emissions []float64 `yaml:"emissions"`
 }
 
 func LoadConfig(filePath string) (*Config, error) {
@@ -63,9 +61,6 @@ func LoadConfig(filePath string) (*Config, error) {
 	}
 	if config.GenesisTotalSupply == 0 {
 		return nil, fmt.Errorf("genesis is empty")
-	}
-	if len(config.Emissions) == 0 {
-		return nil, fmt.Errorf("emissions is empty")
 	}
 	return &config, nil
 }

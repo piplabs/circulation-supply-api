@@ -66,39 +66,26 @@ func GetCirculatingSupply() (string, error) {
 // 2. Get totalBurntBaseFee and totalStakeReward
 // 3. Get timestamp of the latest block
 // 4. Get the balance of the zero address at the latest block
-// 5. Get total vested supply from vesting plan
-// 6. Calculate the total supply = total vested supply - totalBurntBaseFee - IPSentToZeroAddress + totalStakeReward
+// 5. Get genesis total supply from vesting plan
+// 6. Calculate the total supply = genesis total supply - totalBurntBaseFee - IPSentToZeroAddress + totalStakeReward
 func GetTotalSupply() (string, error) {
 	// add cache, if last call is within 30 seconds, return the same result
 	if time.Since(cachedTotalSupplyTime) < cacheDuration && cachedTotalSupply != "" {
 		return cachedTotalSupply, nil
 	}
 
-	totalBurntBaseFee, totalStakeReward, ipSentToZeroAddress, blockTime, err := GetAccumulatedFees()
+	totalBurntBaseFee, totalStakeReward, ipSentToZeroAddress, _, err := GetAccumulatedFees()
 	if err != nil {
 		return "", err
 	}
 
-	var accumulatedEmission *big.Float
-	monthsPassed := MonthsPassedSinceGenesis(blockTime)
-	if monthsPassed < 0 {
-		// this should never happen in mainnet
-		log.Warn("Invalid timestamp", "blockTime", blockTime, "monthsPassed", monthsPassed)
-		accumulatedEmission = big.NewFloat(config.Conf.Emissions[0])
-	} else if monthsPassed >= len(config.Conf.Emissions) {
-		accumulatedEmission = big.NewFloat(config.Conf.Emissions[len(config.Conf.Vesting)-1])
-	} else {
-		accumulatedEmission = big.NewFloat(config.Conf.Emissions[monthsPassed])
-	}
-
-	totalSupply := big.NewFloat(config.Conf.GenesisTotalSupply)
-	totalSupply.Add(totalSupply, accumulatedEmission)
-	totalSupply.Sub(totalSupply, totalBurntBaseFee).SetPrec(64)
+	totalSupply := big.NewFloat(config.Conf.GenesisTotalSupply).SetPrec(64)
+	totalSupply.Sub(totalSupply, totalBurntBaseFee)
 	totalSupply.Sub(totalSupply, ipSentToZeroAddress)
 	totalSupply.Add(totalSupply, totalStakeReward)
 	log.Info("Show details - ", "genesisTotalSupply", config.Conf.GenesisTotalSupply,
-		"accumulatedEmission", accumulatedEmission.Text('f', -1), "totalBurntBaseFee", totalBurntBaseFee.Text('f', -1), "IPSentToZeroAddress", ipSentToZeroAddress.Text('f', -1),
-		"totalStakeReward", totalStakeReward.Text('f', -1), "totalSupply", totalSupply.Text('f', -1), "monthsPassed", monthsPassed)
+		"totalBurntBaseFee", totalBurntBaseFee.Text('f', -1), "IPSentToZeroAddress", ipSentToZeroAddress.Text('f', -1),
+		"totalStakeReward", totalStakeReward.Text('f', -1), "totalSupply", totalSupply.Text('f', -1))
 
 	ret := totalSupply.Text('f', 2)
 	cachedTotalSupply = ret
