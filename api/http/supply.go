@@ -7,10 +7,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func getSupply(c *gin.Context) {
-	ret, err := service.GetSupply()
+func getCirculatingSupply(c *gin.Context) {
+	ret, err := service.GetCirculatingSupply()
 	if err != nil {
-		log.Error("Error getting supply", "error", err)
+		log.Error("Error getting circulating supply", "error", err)
+		ret = "syncing"
+	}
+	c.JSON(200, gin.H{
+		"result": ret,
+	})
+}
+
+func getTotalSupply(c *gin.Context) {
+	ret, err := service.GetTotalSupply()
+	if err != nil {
+		log.Error("Error getting total supply", "error", err)
 		ret = "syncing"
 	}
 	c.JSON(200, gin.H{
