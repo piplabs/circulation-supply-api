@@ -9,6 +9,11 @@ import (
 
 var Conf *Config
 
+var defaultMetrics = Metric{
+	Listen: "0.0.0.0",
+	Port:   9111,
+}
+
 type Config struct {
 	// archive node rpc endpoint
 	RpcEndpoint string `yaml:"rpcEndpoint"`
@@ -28,6 +33,13 @@ type Config struct {
 	Vesting []float64 `yaml:"vesting"`
 
 	GenesisTotalSupply float64 `yaml:"genesisTotalSupply"`
+
+	Metric Metric `yaml:"_"`
+}
+
+type Metric struct {
+	Listen string
+	Port   int
 }
 
 func LoadConfig(filePath string) (*Config, error) {
@@ -62,5 +74,7 @@ func LoadConfig(filePath string) (*Config, error) {
 	if config.GenesisTotalSupply == 0 {
 		return nil, fmt.Errorf("genesis is empty")
 	}
+
+	config.Metric = defaultMetrics
 	return &config, nil
 }

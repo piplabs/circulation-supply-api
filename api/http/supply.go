@@ -1,6 +1,7 @@
 package http
 
 import (
+	"circulation-supply-api/metrics"
 	"circulation-supply-api/service"
 	log "log/slog"
 
@@ -10,6 +11,7 @@ import (
 func getCirculatingSupply(c *gin.Context) {
 	ret, err := service.GetCirculatingSupply()
 	if err != nil {
+		metrics.MetricApiErrorCount.Add(1)
 		log.Error("Error getting circulating supply", "error", err)
 		ret = "syncing"
 	}
@@ -21,6 +23,7 @@ func getCirculatingSupply(c *gin.Context) {
 func getTotalSupply(c *gin.Context) {
 	ret, err := service.GetTotalSupply()
 	if err != nil {
+		metrics.MetricApiErrorCount.Add(1)
 		log.Error("Error getting total supply", "error", err)
 		ret = "syncing"
 	}
