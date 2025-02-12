@@ -1,6 +1,9 @@
 package http
 
 import (
+	"circulation-supply-api/metrics"
+	"time"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -9,11 +12,28 @@ func StartHTTPServer() {
 
 	setupProbeRoutes(r)
 
+	r.Use(requestCounterMiddleware(), latencyMiddleware())
+
 	r.GET("/circulating-supply", getCirculatingSupply)
 	r.GET("/total-supply", getTotalSupply)
 	err := r.Run()
 	if err != nil {
 		panic(err)
+	}
+}
+
+func requestCounterMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		metrics.MetricApiCallCount.Add(1)
+		c.Next()
+	}
+}
+
+func latencyMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		metrics.MetricApiUsedTime.Add(float64(time.Since(start).Nanoseconds()))
 	}
 }
 
