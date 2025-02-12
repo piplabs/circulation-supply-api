@@ -54,7 +54,7 @@ vesting:
   - 1110088951
   - 1124725145
 genesisTotalSupply: 1000000000
-backwardsStartBlock: 837700
+backwardsStartBlock: -1 
 stakeContractAddress: "0xCCcCcC0000000000000000000000000000000001"
 stakeReceiverAddress: "0x0000000000000000000000000000000000000000"
 stakeThreshold: 1024
