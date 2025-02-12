@@ -92,7 +92,7 @@ func handleBlock() {
 			if err != nil {
 				log.Error("Error saving data", "error", err)
 			}
-			log.Info("[Forwards] BlockNumber", "number", currentBlock, "burntBaseFee", burntIP.Text('f', -1), "totalBurntBaseFee", totalBurntBaseFee.Text('f', -1), "stakeReward", stakeReward.Text('f', -1), "totalStake", totalStakeReward.Text('f', -1))
+			log.Info("[Forwards] BlockNumber", "number", currentBlock, "burntBaseFee", burntIP.Text('f', -1), "totalBurntBaseFee", totalBurntBaseFee.Text('f', -1), "stakeReward", stakeReward.Text('f', -1), "totalStake", totalStakeReward.Text('f', -1), "totalStakedToken", totalStakedToken.Text('f', -1))
 		}
 		metrics.CurrentlyIndexed.Set(float64(currentBlock))
 	}
