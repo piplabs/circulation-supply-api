@@ -34,6 +34,14 @@ type Config struct {
 
 	GenesisTotalSupply float64 `yaml:"genesisTotalSupply"`
 
+	// should be older than first block contains stake transaction, so that the backward scan end here, or it will scan till the genesis block
+	BackwardsStartBlock int `yaml:"backwardsStartBlock"`
+
+	// we check all internal transactions of StakeReceiverAddress(0x00000..000), and sum up the value of the transactions that are from StakeContractAddress and value >= StakeThreshold
+	StakeContractAddress string  `yaml:"stakeContractAddress"`
+	StakeReceiverAddress string  `yaml:"stakeReceiverAddress"`
+	StakeThreshold       float64 `yaml:"stakeThreshold"` // usually 1024 IP
+
 	Metric Metric `yaml:"_"`
 }
 
@@ -73,6 +81,18 @@ func LoadConfig(filePath string) (*Config, error) {
 	}
 	if config.GenesisTotalSupply == 0 {
 		return nil, fmt.Errorf("genesis is empty")
+	}
+
+	if len(config.StakeContractAddress) == 0 {
+		return nil, fmt.Errorf("stakeContractAddress is empty")
+	}
+
+	if len(config.StakeReceiverAddress) == 0 {
+		return nil, fmt.Errorf("stakeReceiverAddress is empty")
+	}
+
+	if config.StakeThreshold == 0 {
+		return nil, fmt.Errorf("stakeThreshold is empty")
 	}
 
 	config.Metric = defaultMetrics
