@@ -25,7 +25,9 @@ func BackwardsScanTrace() {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			panic(err)
 		}
-		BackwardsBlockNumber = currentBlock
+		if currentBlock >= 1 {
+			BackwardsBlockNumber = currentBlock - 1
+		}
 		BackwardsStakedToken = big.NewFloat(0).SetPrec(64)
 	} else {
 		BackwardsBlockNumber = lastBlock - 1
@@ -36,7 +38,7 @@ func BackwardsScanTrace() {
 		BackwardsStakedToken = t
 	}
 
-	metrics.BackwardsIndexed.Set(float64(currentBlock))
+	metrics.BackwardsIndexed.Set(float64(BackwardsBlockNumber))
 
 	for BackwardsBlockNumber > uint64(config.Conf.BackwardsStartBlock) {
 		traces, err := FetchTraces(fmt.Sprintf("0x%x", BackwardsBlockNumber))
@@ -57,6 +59,6 @@ func BackwardsScanTrace() {
 			}
 		}
 		BackwardsBlockNumber--
-		metrics.BackwardsIndexed.Set(float64(currentBlock))
+		metrics.BackwardsIndexed.Set(float64(BackwardsBlockNumber))
 	}
 }
