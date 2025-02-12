@@ -2,7 +2,7 @@ rpcEndpoint: "https://internal-archive.aeneid.storyrpc.io"
 zeroAddresses:
   - "0x0000000000000000000000000000000000000000"
 vestingStartYear: 2025
-vestingStartMonth: 1
+vestingStartMonth: 2
 vesting:
   - 250000000
   - 258618750 
@@ -54,3 +54,7 @@ vesting:
   - 1110088951
   - 1124725145
 genesisTotalSupply: 1000000000
+backwardsStartBlock:  670491
+stakeContractAddress: "0xCCcCcC0000000000000000000000000000000001"
+stakeReceiverAddress: "0x0000000000000000000000000000000000000000"
+stakeThreshold: 1024

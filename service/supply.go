@@ -3,11 +3,14 @@ package service
 import (
 	"circulation-supply-api/config"
 	"circulation-supply-api/dao"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
 
 	log "log/slog"
+
+	"gorm.io/gorm"
 )
 
 var (
@@ -32,7 +35,7 @@ func GetCirculatingSupply() (string, error) {
 		return cachedCirculatingSupply, nil
 	}
 
-	totalBurntBaseFee, totalStakeReward, ipSentToZeroAddress, blockTime, err := GetAccumulatedFees()
+	totalBurntBaseFee, totalStakeReward, totalStakedToken, ipSentToZeroAddress, blockTime, err := GetAccumulatedFees()
 	if err != nil {
 		return "", err
 	}
@@ -51,8 +54,11 @@ func GetCirculatingSupply() (string, error) {
 	circulatingSupply := new(big.Float).Sub(vestedSupply, totalBurntBaseFee).SetPrec(64)
 	circulatingSupply.Sub(circulatingSupply, ipSentToZeroAddress)
 	circulatingSupply.Add(circulatingSupply, totalStakeReward)
+
+	// ipSentToZeroAddress contains totalStakedToken, so we need to add it back
+	circulatingSupply.Add(circulatingSupply, totalStakedToken)
 	log.Info("Show details - ", "vestedSupply", vestedSupply.Text('f', -1), "totalBurntBaseFee",
-		totalBurntBaseFee.Text('f', -1), "IPSentToZeroAddress", ipSentToZeroAddress.Text('f', -1),
+		totalBurntBaseFee.Text('f', -1), "IPSentToZeroAddress", ipSentToZeroAddress.Text('f', -1), "totalStakedToken", totalStakedToken.Text('f', -1),
 		"totalStakeReward", totalStakeReward.Text('f', -1), "circulatingSupply", circulatingSupply.Text('f', -1), "monthsPassed", monthsPassed)
 
 	ret := circulatingSupply.Text('f', 2)
@@ -74,7 +80,7 @@ func GetTotalSupply() (string, error) {
 		return cachedTotalSupply, nil
 	}
 
-	totalBurntBaseFee, totalStakeReward, ipSentToZeroAddress, _, err := GetAccumulatedFees()
+	totalBurntBaseFee, totalStakeReward, totalStakedToken, ipSentToZeroAddress, _, err := GetAccumulatedFees()
 	if err != nil {
 		return "", err
 	}
@@ -83,8 +89,11 @@ func GetTotalSupply() (string, error) {
 	totalSupply.Sub(totalSupply, totalBurntBaseFee)
 	totalSupply.Sub(totalSupply, ipSentToZeroAddress)
 	totalSupply.Add(totalSupply, totalStakeReward)
-	log.Info("Show details - ", "genesisTotalSupply", config.Conf.GenesisTotalSupply,
-		"totalBurntBaseFee", totalBurntBaseFee.Text('f', -1), "IPSentToZeroAddress", ipSentToZeroAddress.Text('f', -1),
+	// ipSentToZeroAddress contains totalStakedToken, so we need to add it back
+	totalSupply.Add(totalSupply, totalStakedToken)
+
+	log.Info("Show details - ", "genesisTotalSupply", config.Conf.GenesisTotalSupply, "totalBurntBaseFee", totalBurntBaseFee.Text('f', -1),
+		"IPSentToZeroAddress", ipSentToZeroAddress.Text('f', -1), "totalStakedToken", totalStakedToken.Text('f', -1),
 		"totalStakeReward", totalStakeReward.Text('f', -1), "totalSupply", totalSupply.Text('f', -1))
 
 	ret := totalSupply.Text('f', 2)
@@ -101,7 +110,7 @@ func MonthsPassedSinceGenesis(blockTime string) int {
 	return monthsPassed
 }
 
-func GetAccumulatedFees() (totalBurntBaseFee, totalStakeReward, ipSentToZeroAddress *big.Float, blockTime string, err error) {
+func GetAccumulatedFees() (totalBurntBaseFee, totalStakeReward, totalStakedToken, ipSentToZeroAddress *big.Float, blockTime string, err error) {
 	var fee *dao.AccumulatedFees
 	var block *Block
 	var b bool
@@ -122,6 +131,34 @@ func GetAccumulatedFees() (totalBurntBaseFee, totalStakeReward, ipSentToZeroAddr
 		err = fmt.Errorf("error parsing total stake reward")
 		return
 	}
+
+	// newly added column could be nil
+	if len(fee.TotalStakedToken) > 0 {
+		totalStakedToken, b = new(big.Float).SetString(fee.TotalStakedToken)
+		if !b {
+			err = fmt.Errorf("error parsing total staked token")
+			return
+		}
+	} else {
+		totalStakedToken = big.NewFloat(0)
+	}
+
+	// get backwards staked token
+	_, amount, err := dao.GetBackwardsStakedToken()
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			amount = "0"
+		} else {
+			log.Error("Failed to get backwards staked token", "error", err)
+			return
+		}
+	}
+	backwardsStakedToken, b := new(big.Float).SetString(amount)
+	if !b {
+		err = fmt.Errorf("error parsing backwards staked token")
+		return
+	}
+	totalStakedToken.Add(totalStakedToken, backwardsStakedToken)
 
 	block, err = getBlockByNumber(fmt.Sprintf("0x%x", blockNumber))
 	if err != nil {
