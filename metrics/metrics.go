@@ -29,6 +29,13 @@ var MetricApiErrorCount = promauto.NewCounter(
 var CurrentlyIndexed = promauto.NewGauge(
 	prometheus.GaugeOpts{
 		Name: "circulation_currently_indexed_block",
-		Help: "Which block currently indexed.",
+		Help: "Which block currently indexed by forward scanning.",
+	},
+)
+
+var BackwardsIndexed = promauto.NewGauge(
+	prometheus.GaugeOpts{
+		Name: "circulation_backwards_indexed_block",
+		Help: "Which block currently indexed by backwards scanning.",
 	},
 )
