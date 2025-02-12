@@ -83,10 +83,6 @@ func LoadConfig(filePath string) (*Config, error) {
 		return nil, fmt.Errorf("genesis is empty")
 	}
 
-	if config.BackwardsStartBlock == 0 {
-		return nil, fmt.Errorf("backwardsStartBlock is empty")
-	}
-
 	if len(config.StakeContractAddress) == 0 {
 		return nil, fmt.Errorf("stakeContractAddress is empty")
 	}

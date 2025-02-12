@@ -20,6 +20,11 @@ var (
 
 // Iterate from current block/last block to a configurable block number
 func BackwardsScanTrace() {
+	// short circuit to disable backwards scan
+	if config.Conf.BackwardsStartBlock == -1 {
+		return
+	}
+
 	lastBlock, stakedToken, err := dao.GetBackwardsStakedToken()
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
