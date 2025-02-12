@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 
 	"circulation-supply-api/config"
 	"circulation-supply-api/dao"
+	"circulation-supply-api/metrics"
 	"circulation-supply-api/service"
 )
 
@@ -19,6 +21,8 @@ func main() {
 		log.Fatalf("Error loading config: %v", err)
 	}
 	dao.InitDB()
+
+	go metrics.StartMetricsServer(fmt.Sprintf("%s:%d", config.Conf.Metric.Listen, config.Conf.Metric.Port))
 
 	service.Start()
 }

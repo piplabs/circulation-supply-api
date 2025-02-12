@@ -1,6 +1,7 @@
 package service
 
 import (
+	"circulation-supply-api/metrics"
 	"fmt"
 	"math/big"
 	"time"
@@ -30,6 +31,8 @@ func Start() {
 		log.Warn("Error loading data", "error", err)
 		return
 	}
+
+	metrics.CurrentlyIndexed.Set(float64(currentBlock))
 
 	go watchBlocks()
 	handleBlock()
@@ -74,6 +77,7 @@ func handleBlock() {
 			}
 			log.Info("BlockNumber", "number", currentBlock, "burntBaseFee", burntIP.Text('f', -1), "totalBurntBaseFee", totalBurntBaseFee.Text('f', -1), "stakeReward", stakeReward.Text('f', -1), "totalStake", totalStakeReward.Text('f', -1))
 		}
+		metrics.CurrentlyIndexed.Set(float64(currentBlock))
 	}
 }
 
