@@ -58,3 +58,4 @@ backwardsStartBlock: -1
 stakeContractAddress: "0xCCcCcC0000000000000000000000000000000001"
 stakeReceiverAddress: "0x0000000000000000000000000000000000000000"
 stakeThreshold: 1024
+realTimeDataAvailableAt: 1739610000
