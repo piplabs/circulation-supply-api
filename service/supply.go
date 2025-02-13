@@ -30,6 +30,11 @@ var (
 // 5. Get accumulated vested supply from vesting plan
 // 6. Calculate the total circulating supply = accumulated vested supply - totalBurntBaseFee - IPSentToZeroAddress + totalStakeReward
 func GetCirculatingSupply() (string, error) {
+	// hardcoded value till config.Conf.RealTimeDataAvailableAt
+	if time.Now().Unix() < config.Conf.RealTimeDataAvailableAt {
+		return "250000000", nil
+	}
+
 	// add cache, if last call is within 30 seconds, return the same result
 	if time.Since(cachedCirculatingSupplyTime) < cacheDuration && cachedCirculatingSupply != "" {
 		return cachedCirculatingSupply, nil
@@ -75,6 +80,11 @@ func GetCirculatingSupply() (string, error) {
 // 5. Get genesis total supply from vesting plan
 // 6. Calculate the total supply = genesis total supply - totalBurntBaseFee - IPSentToZeroAddress + totalStakeReward
 func GetTotalSupply() (string, error) {
+	// hardcoded value till config.Conf.RealTimeDataAvailableAt
+	if time.Now().Unix() < config.Conf.RealTimeDataAvailableAt {
+		return "1000000000", nil
+	}
+
 	// add cache, if last call is within 30 seconds, return the same result
 	if time.Since(cachedTotalSupplyTime) < cacheDuration && cachedTotalSupply != "" {
 		return cachedTotalSupply, nil

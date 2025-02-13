@@ -42,6 +42,8 @@ type Config struct {
 	StakeReceiverAddress string  `yaml:"stakeReceiverAddress"`
 	StakeThreshold       float64 `yaml:"stakeThreshold"` // usually 1024 IP
 
+	RealTimeDataAvailableAt int64 `yaml:"realTimeDataAvailableAt"`
+
 	Metric Metric `yaml:"_"`
 }
 
