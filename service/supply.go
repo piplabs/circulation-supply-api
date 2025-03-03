@@ -115,8 +115,13 @@ func GetTotalSupply() (string, error) {
 
 func MonthsPassedSinceGenesis(blockTime string) int {
 	blockTimestamp, _ := new(big.Int).SetString(blockTime, 0)
-	year, month, _ := time.Unix(blockTimestamp.Int64(), 0).UTC().Date()
+	year, month, day := time.Unix(blockTimestamp.Int64(), 0).UTC().Date()
 	monthsPassed := (year-config.Conf.VestingStartYear)*12 + int(month-time.Month(config.Conf.VestingStartMonth))
+
+	// do not adjust according to vesting schedule until 13th of each month
+	if monthsPassed > 0 && day < config.Conf.VestingStartDay {
+		monthsPassed--
+	}
 	return monthsPassed
 }
 
