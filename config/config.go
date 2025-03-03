@@ -27,6 +27,9 @@ type Config struct {
 	// month when the vesting starts
 	VestingStartMonth int `yaml:"vestingStartMonth"`
 
+	// day when the vesting starts
+	VestingStartDay int `yaml:"vestingStartDay"`
+
 	// each element represents the circulating supply for a month starting from "VestingStartYear/VestingStartMonth"
 	// e.g. Vesting = [100, 200, 300] and VestingStartYear = 2025 and VestingStartMonth = 1, then the circulating supply
 	// for 2025/1 is 100, for 2025/2 is 200, for 2025/3 is 300.
@@ -74,6 +77,9 @@ func LoadConfig(filePath string) (*Config, error) {
 	}
 	if config.VestingStartMonth == 0 {
 		return nil, fmt.Errorf("vestingStartMonth is empty")
+	}
+	if config.VestingStartDay == 0 {
+		return nil, fmt.Errorf("vestingStartDay is empty")
 	}
 	if len(config.RpcEndpoint) == 0 {
 		return nil, fmt.Errorf("rpcEndpoint is empty")
