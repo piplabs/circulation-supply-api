@@ -111,7 +111,7 @@ func calculateStakeReward(withdrawals []Withdrawal) *big.Float {
 	totalReward := big.NewFloat(0).SetPrec(64)
 	for _, withdrawal := range withdrawals {
 		if withdrawal.Validator != withdrawalTypeStakeReward &&
-			withdrawal.Address != withdrawalTypeUBI {
+			withdrawal.Validator != withdrawalTypeUBI {
 			continue
 		}
 		amount, _ := new(big.Int).SetString(withdrawal.Amount[2:], 16)
