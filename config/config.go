@@ -14,6 +14,8 @@ var defaultMetrics = Metric{
 	Port:   9111,
 }
 
+// TODO: looks for oppurtunity to dynamically load config
+
 type Config struct {
 	// archive node rpc endpoint
 	RpcEndpoint string `yaml:"rpcEndpoint"`
