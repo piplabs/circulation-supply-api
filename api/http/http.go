@@ -14,8 +14,13 @@ func StartHTTPServer() {
 
 	r.Use(requestCounterMiddleware(), latencyMiddleware())
 
+	// used by coingecko
 	r.GET("/circulating-supply", getCirculatingSupply)
 	r.GET("/total-supply", getTotalSupply)
+
+	// used by CMC
+	r.GET("/cs", getCirculatingSupplyWhole)
+	r.GET("/ts", getTotalSupplyWhole)
 	err := r.Run()
 	if err != nil {
 		panic(err)

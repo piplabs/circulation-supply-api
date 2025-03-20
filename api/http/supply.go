@@ -9,11 +9,14 @@ import (
 )
 
 func getCirculatingSupply(c *gin.Context) {
-	ret, err := service.GetCirculatingSupply()
+	var ret string
+	circulatingSupply, err := service.GetCirculatingSupply()
 	if err != nil {
 		metrics.MetricApiErrorCount.Add(1)
 		log.Error("Error getting circulating supply", "error", err)
 		ret = "syncing"
+	} else {
+		ret = circulatingSupply.Text('f', 2)
 	}
 	c.JSON(200, gin.H{
 		"result": ret,
@@ -21,13 +24,44 @@ func getCirculatingSupply(c *gin.Context) {
 }
 
 func getTotalSupply(c *gin.Context) {
-	ret, err := service.GetTotalSupply()
+	var ret string
+	totalSupply, err := service.GetTotalSupply()
 	if err != nil {
 		metrics.MetricApiErrorCount.Add(1)
 		log.Error("Error getting total supply", "error", err)
 		ret = "syncing"
+	} else {
+		ret = totalSupply.Text('f', 2)
 	}
 	c.JSON(200, gin.H{
 		"result": ret,
 	})
+}
+
+// Returns the circulating supply as an integer (only the whole number part, no decimals).
+// CMC asks for this endpoint.
+func getCirculatingSupplyWhole(c *gin.Context) {
+	var ret int64
+	circulatingSupply, err := service.GetCirculatingSupply()
+	if err != nil {
+		metrics.MetricApiErrorCount.Add(1)
+		log.Error("Error getting circulating supply", "error", err)
+	} else {
+		ret, _ = circulatingSupply.Int64()
+	}
+	c.JSON(200, ret)
+}
+
+// Returns the total supply as an integer (only the whole number part, no decimals).
+// CMC asks for this endpoint.
+func getTotalSupplyWhole(c *gin.Context) {
+	var ret int64
+	totalSupply, err := service.GetTotalSupply()
+	if err != nil {
+		metrics.MetricApiErrorCount.Add(1)
+		log.Error("Error getting total supply", "error", err)
+	} else {
+		ret, _ = totalSupply.Int64()
+	}
+	c.JSON(200, ret)
 }
