@@ -14,10 +14,10 @@ import (
 )
 
 var (
-	cachedTotalSupply     string
+	cachedTotalSupply     *big.Float
 	cachedTotalSupplyTime = time.Now()
 
-	cachedCirculatingSupply     string
+	cachedCirculatingSupply     *big.Float
 	cachedCirculatingSupplyTime = time.Now()
 
 	cacheDuration = 30 * time.Second
@@ -29,20 +29,15 @@ var (
 // 4. Get the balance of the zero address at the latest block
 // 5. Get accumulated vested supply from vesting plan
 // 6. Calculate the total circulating supply = accumulated vested supply - totalBurntBaseFee - IPSentToZeroAddress + totalStakeReward
-func GetCirculatingSupply() (string, error) {
-	// hardcoded value till config.Conf.RealTimeDataAvailableAt
-	if time.Now().Unix() < config.Conf.RealTimeDataAvailableAt {
-		return "250000000", nil
-	}
-
+func GetCirculatingSupply() (*big.Float, error) {
 	// add cache, if last call is within 30 seconds, return the same result
-	if time.Since(cachedCirculatingSupplyTime) < cacheDuration && cachedCirculatingSupply != "" {
+	if time.Since(cachedCirculatingSupplyTime) < cacheDuration && cachedCirculatingSupply != nil {
 		return cachedCirculatingSupply, nil
 	}
 
 	totalBurntBaseFee, totalStakeReward, totalStakedToken, ipSentToZeroAddress, blockTime, err := GetAccumulatedFees()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var vestedSupply *big.Float
@@ -66,11 +61,10 @@ func GetCirculatingSupply() (string, error) {
 		totalBurntBaseFee.Text('f', -1), "IPSentToZeroAddress", ipSentToZeroAddress.Text('f', -1), "totalStakedToken", totalStakedToken.Text('f', -1),
 		"totalStakeReward", totalStakeReward.Text('f', -1), "circulatingSupply", circulatingSupply.Text('f', -1), "monthsPassed", monthsPassed)
 
-	ret := circulatingSupply.Text('f', 2)
-	cachedCirculatingSupply = ret
+	cachedCirculatingSupply = circulatingSupply
 	cachedCirculatingSupplyTime = time.Now()
 
-	return ret, nil
+	return circulatingSupply, nil
 }
 
 // 1. Get latest block from database
@@ -79,20 +73,15 @@ func GetCirculatingSupply() (string, error) {
 // 4. Get the balance of the zero address at the latest block
 // 5. Get genesis total supply from vesting plan
 // 6. Calculate the total supply = genesis total supply - totalBurntBaseFee - IPSentToZeroAddress + totalStakeReward
-func GetTotalSupply() (string, error) {
-	// hardcoded value till config.Conf.RealTimeDataAvailableAt
-	if time.Now().Unix() < config.Conf.RealTimeDataAvailableAt {
-		return "1000000000", nil
-	}
-
+func GetTotalSupply() (*big.Float, error) {
 	// add cache, if last call is within 30 seconds, return the same result
-	if time.Since(cachedTotalSupplyTime) < cacheDuration && cachedTotalSupply != "" {
+	if time.Since(cachedTotalSupplyTime) < cacheDuration && cachedTotalSupply != nil {
 		return cachedTotalSupply, nil
 	}
 
 	totalBurntBaseFee, totalStakeReward, totalStakedToken, ipSentToZeroAddress, _, err := GetAccumulatedFees()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	totalSupply := big.NewFloat(config.Conf.GenesisTotalSupply).SetPrec(64)
@@ -106,11 +95,10 @@ func GetTotalSupply() (string, error) {
 		"IPSentToZeroAddress", ipSentToZeroAddress.Text('f', -1), "totalStakedToken", totalStakedToken.Text('f', -1),
 		"totalStakeReward", totalStakeReward.Text('f', -1), "totalSupply", totalSupply.Text('f', -1))
 
-	ret := totalSupply.Text('f', 2)
-	cachedTotalSupply = ret
+	cachedTotalSupply = totalSupply
 	cachedTotalSupplyTime = time.Now()
 
-	return ret, nil
+	return totalSupply, nil
 }
 
 func MonthsPassedSinceGenesis(blockTime string) int {
