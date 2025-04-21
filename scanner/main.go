@@ -9,6 +9,8 @@ import (
 	"circulation-supply-api/dao"
 	"circulation-supply-api/metrics"
 	"circulation-supply-api/service"
+
+	_ "go.uber.org/automaxprocs"
 )
 
 func main() {
