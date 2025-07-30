@@ -101,6 +101,7 @@ func GetTotalSupply() (*big.Float, error) {
 	return totalSupply, nil
 }
 
+// Returns the number of months passed since the genesis block, adjusted for the vesting schedule.
 func MonthsPassedSinceGenesis(blockTime string) int {
 	blockTimestamp, _ := new(big.Int).SetString(blockTime, 0)
 	year, month, day := time.Unix(blockTimestamp.Int64(), 0).UTC().Date()

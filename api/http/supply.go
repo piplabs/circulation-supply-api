@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Returns the circulating supply as a string with two decimal places.
 func getCirculatingSupply(c *gin.Context) {
 	var ret string
 	circulatingSupply, err := service.GetCirculatingSupply()
@@ -23,6 +24,7 @@ func getCirculatingSupply(c *gin.Context) {
 	})
 }
 
+// Returns the total supply as a string with two decimal places.
 func getTotalSupply(c *gin.Context) {
 	var ret string
 	totalSupply, err := service.GetTotalSupply()
@@ -39,7 +41,6 @@ func getTotalSupply(c *gin.Context) {
 }
 
 // Returns the circulating supply as an integer (only the whole number part, no decimals).
-// CMC asks for this endpoint.
 func getCirculatingSupplyWhole(c *gin.Context) {
 	var ret int64
 	circulatingSupply, err := service.GetCirculatingSupply()
@@ -53,7 +54,6 @@ func getCirculatingSupplyWhole(c *gin.Context) {
 }
 
 // Returns the total supply as an integer (only the whole number part, no decimals).
-// CMC asks for this endpoint.
 func getTotalSupplyWhole(c *gin.Context) {
 	var ret int64
 	totalSupply, err := service.GetTotalSupply()

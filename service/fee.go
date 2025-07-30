@@ -13,6 +13,7 @@ func saveAccumulatedFees(block uint64, totalBurntBaseFee *big.Float, totalStakeR
 	return dao.SaveAccumulatedFees(block, totalBurntBaseFee.Text('f', -1), totalStakeReward.Text('f', -1), totalStakedToken.Text('f', -1))
 }
 
+// load retrieves the latest accumulated fees from the database.
 func load() (uint64, *big.Float, *big.Float, *big.Float, error) {
 	fee, err := dao.GetLatestAccumulatedFees()
 	if err != nil {

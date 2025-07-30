@@ -13,6 +13,7 @@ import (
 	_ "go.uber.org/automaxprocs"
 )
 
+// entry point of the Scanner service
 func main() {
 	configFile := flag.String("config", "", "Path to the configuration file")
 	flag.Parse()

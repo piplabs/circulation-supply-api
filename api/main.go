@@ -12,6 +12,7 @@ import (
 	_ "go.uber.org/automaxprocs"
 )
 
+// entry point of the API service
 func main() {
 	configFile := flag.String("config", "", "Path to the configuration file")
 	flag.Parse()

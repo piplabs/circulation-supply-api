@@ -96,6 +96,8 @@ func FetchTraces(blockNumber string) (*Trace, error) {
 	}, nil
 }
 
+// ProcessTraces processes the traces and calculates the staked token amount
+// by summing up the values of internal transactions that meet the criteria.
 func ProcessTraces(trace *Trace) *big.Float {
 	transactions := trace.ParentTxs
 
@@ -126,7 +128,7 @@ func ProcessTraces(trace *Trace) *big.Float {
 		ethValue := new(big.Float).Quo(valueEth, big.NewFloat(1e18))
 
 		if ethValue.Cmp(threshold) >= 0 {
-			log.Info("High Value Internal Transaction (≥ 1024 ETH)", "Value", ethValue.Text('f', 6), "blockNumber", trace.BlockNumber)
+			log.Info("High Value Internal Transaction (≥ 1024 IP)", "Value", ethValue.Text('f', 6), "blockNumber", trace.BlockNumber)
 			stakedToken.Add(stakedToken, ethValue)
 		}
 	}

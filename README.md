@@ -1,77 +1,96 @@
 # Circulating Supply API
 
-This repo is for querying circulating/total IP supply.
+This repo is for tracing circulating/total IP supply.
+The supply is calculated based on a combination of on-chain metrics and the off-chain vesting schedule. 
 
 # API Interface
 
-## Get circulating supply
+| Entrypoint            | Action | Request parameters | Response example                     | Comment                                             | 
+|------------------------|--------|--------------------|--------------------------------------|-----------------------------------------------------|
+| /circulating-supply    | GET    | nil                | {"result":"24900000.687"}            | return the circulating IP supply in string format   |
+| /total-supply          | GET    | nil                | {"result":"9900000.687"}             | return the total IP supply in string format         |
+| /cs                    | GET    | nil                | 24900001                             | return the circulating IP supply in whole number format | 
+| /ts                    | GET    | nil                | 9900001                              | return the total IP supply in whole number format   | 
 
-- URL: GET `/circulating-supply`
-- Description:  return the circulating IP supply at a relatively recent block height
-- Request: nil
-- Response: {”result”:”10000000”} // unit is IP
+# Sources
 
-## Get total supply
-
-- URL: GET `/total-supply`
-- Description:  return the total IP supply at a relatively recent block height
-- Request: nil
-- Response: {”result”:”10000000”} // unit is IP
+- **Vested Supply**: Based on the official vesting plan.
+- **Burnt IP**: Includes gas burnt and IP sent to the zero address.
+- **Minted IP**: Rewards from staking 
 
 # Detailed Design
 
-## Infra setup
+## Services
 
-As local test shows,  both service consume few resources. 
+In order to trace the circulating supply, we need to run two services:
+1. **Scanner Service**: This service is responsible for iterating through the blockchain, calculating values like accumulated burnt IP and minted IP, and saving these values to a database.
+2. **API Service**: This service provides an HTTP interface for users to query the circulating supply.
+
+### Infra setup
+
+As our test shows,  both service consume few resources. 
 Recommend: 1 core CPU &  256m MEM 
 
-## Services
 
 ### Scanner Service
 
-- description
-    1. Single instance
-    2. Index blocks and calculate accumulated burntBaseFee and stakeReward
+#### description
+1. Single instance
+2. Index blocks and calculate accumulated burnt IP and minted IP
     
-- entry point
-    go run /circulation-supply-api/scanner/main.go --config=/circulation-supply-api/config/odyssey.yaml
+#### entry point
+    go run /circulation-supply-api/scanner/main.go --config=/circulation-supply-api/config/mainnet.yaml
 
-- config
-    1.rpcEndpoints
-
-    
-- flow
-    1. Fetch info of last iterated block from database. Iterate from last iterated block. If no such block, iterate from genesis block.
-    2. Call `eth_getBlockByNumber` . The response contains `baseFeePerGas` , `gasUsed`, `withdrawals`
-    3.  `burntBaseFee`  = `baseFeePerGas` * `gasUsed`
-        
-        `stakeReward`  =  sum of `withdrawal.amount` ( `withdrawal.Validator` MUST equal "0x1" or "0x2" or "0x3" )
-        
-    4. Save blockNumber & totalBurntBaseFee & totalStakeReward into a snapshot file every 100 blocks.
+#### flow
+1. Fetch info of last iterated block from database. Iterate from last iterated block. If no such block, iterate from genesis block.
+2. Call `eth_getBlockByNumber` . The response contains `baseFeePerGas` , `gasUsed`, `withdrawals`
+3.  `burntBaseFee`  = `baseFeePerGas` * `gasUsed`
+    `stakeReward`  =  sum of `withdrawal.amount` ( `withdrawal.Validator` MUST equal "0x1" or "0x2" )
+    `stakedToken` = sum of transfers that transfer over 1024 IP from Stake contract to Stake receiver contract
+4. Save blockNumber & totalBurntBaseFee & totalStakedToken & totalStakeReward into database every 100 blocks.
 
 ### API Service
 
-- description
-    1. Multiple instances
-    2. Provide an HTTP interface `/circulating-supply` for users to query circulation volume.
+#### description
+1. Multiple instances
+2. Provide HTTP interfaces for users to query circulating and total supply.
 
-- entry point
-    go run /circulation-supply-api/api/main.go --config=/circulation-supply-api/config/odyssey.yaml
+#### entry point
+    go run /circulation-supply-api/api/main.go --config=/circulation-supply-api/config/mainnet.yaml
 
-- config
-    1. rpcEndpoints
-    2. zero addresses
-    3. vesting schedule
-    4. vesting start year
-    5. vesting start month
-    6. genesis total supply
-    
-- flow
-    1. User calls API `/circulating-supply` or `/total-supply`
-    2. If last call is within 30 seconds, return cached result
-    3. get `totalBurntBaseFee` and `totalStakeReward` and `blockNumber` from last iterated block from database
-    4. fetch `IPSentToZeroAddresses` in last iterated block through JSON RPC eth_getBalance
-    5. get `blockTimestamp`  by `blockNumber`  through JSON RPC eth_getBlockByNumber
-    7. compute result
-        - if `/circulating-supply`:  calculate year & month of `blockTimestamp`, get `vestedCirculatingSupply` from configuration according to year & month, then result=  `vestedCirculatingSupply` - (`totalBurntBaseFee` + `IPSentToZeroAddresses`) + `totalStakeReward`
-        - if `/total-supply`: get `genesisTotalSupply` from configuration, then result = `genesisTotalSupply` - (`totalBurntBaseFee` + `IPSentToZeroAddresses`) + `totalStakeReward`
+#### flow
+1. `/circulating-supply`  & `/cs`
+    a. Get latest block from database
+    b.  Get totalBurntBaseFee, totalStakedToken and totalStakeReward
+    c.  Get timestamp of the latest block
+    d.  Get the balance of the zero address at the latest block
+    e.  Get accumulated vested supply from vesting plan
+    f.  Calculate the total circulating supply = accumulated vested supply - totalBurntBaseFee - IPSentToZeroAddress + totalStakedToken + totalStakeReward
+2. `/total-supply`  & `/cs`
+    a. Get latest block from database
+    b.  Get totalBurntBaseFee, totalStakedToken and totalStakeReward
+    c.  Get timestamp of the latest block
+    d.  Get the balance of the zero address at the latest block
+    e. Get genesis total supply from vesting plan
+    f. Calculate the total supply = genesis total supply - totalBurntBaseFee - IPSentToZeroAddress +totalStakedToken + totalStakeReward
+
+## Notes
+1. How to estimate minted tokens:
+    - Reward per block: 1.929 (20,000,000/10,368,000)
+    - The number of blocks after the singularity: CurrentBlockNumber-1,580,851, where 1,580,851 is the singularity height
+    - Total reward = 1.929 * (CurrentBlockNumber-1,580,851)
+
+2. API service will output key information in the log, for example: 
+```
+2025/07/30 05:02:06 INFO Show details -  vestedSupply=284760417 totalBurntBaseFee=12.313564381151027358 IPSentToZeroAddress=535319295.33350471519 totalStakedToken=535318403.28723771457 totalStakeReward=10248222.271689286413 circulatingSupply=295007734.91185790463 monthsPassed=5
+
+```
+
+Above log shows the following information on 2025/07/30 05:02:06:
+- vested supply = 284,760,417
+- burnt IP = 12.313564 + 892.046267
+    - baseFeeBurnt = 12.313564
+    - sendToZeroAddressBurnt = 892.046267
+- minted = 10,248,222.271689
+
+Thus circulating supply = 284,760,417 - 12.313564 - 892.046267 + 535,318,403.28723771457 + 10,248,222.271689286413 = 295,007,734.911858

@@ -34,8 +34,10 @@ func Start() {
 	}
 	metrics.CurrentlyIndexed.Set(float64(currentBlock))
 
+	// backwards scan is disabled on Mainnet
 	go BackwardsScanTrace()
 
+	// forwards scan
 	go watchBlocks()
 	handleBlock()
 
@@ -74,7 +76,8 @@ func watchBlocks() {
 	}
 }
 
-// handleBlock calculates the burnt IP and stake reward for each block and saves the accumulated fees every 100 blocks
+// handleBlock calculates the burnt IP and stake reward for each block
+// and saves the accumulated fees every 100 blocks
 func handleBlock() {
 	for block := range blockEventCh {
 		burntIP := calculateBurntIP(block.BaseFeePerGas, block.GasUsed)
@@ -98,6 +101,7 @@ func handleBlock() {
 	}
 }
 
+// Burnt IP is calculated by multiplying the base fee per gas by the gas used in the block.
 func calculateBurntIP(baseFeePerGasHex, gasUsedHex string) *big.Float {
 	baseFeePerGas, _ := new(big.Int).SetString(baseFeePerGasHex[2:], 16)
 	gasUsed, _ := new(big.Int).SetString(gasUsedHex[2:], 16)
@@ -107,6 +111,7 @@ func calculateBurntIP(baseFeePerGasHex, gasUsedHex string) *big.Float {
 	return burntIP
 }
 
+// Stake reward is calculated by summing up the values of specific types of withdrawals
 func calculateStakeReward(withdrawals []Withdrawal) *big.Float {
 	totalReward := big.NewFloat(0).SetPrec(64)
 	for _, withdrawal := range withdrawals {
