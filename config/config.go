@@ -16,7 +16,7 @@ var defaultMetrics = Metric{
 
 type Config struct {
 	// archive node rpc endpoint
-	RpcEndpoint string `yaml:"rpcEndpoint"`
+	RpcEndpoint string `yaml:"-"`
 
 	// zero addresses are where the tokens are sent to and are considered as burned
 	ZeroAddresses []string `yaml:"zeroAddresses"`
@@ -47,7 +47,7 @@ type Config struct {
 
 	RealTimeDataAvailableAt int64 `yaml:"realTimeDataAvailableAt"`
 
-	Metric Metric `yaml:"_"`
+	Metric Metric `yaml:"-"`
 }
 
 type Metric struct {
@@ -68,7 +68,12 @@ func LoadConfig(filePath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to decode config file: %v", err)
 	}
 
+	config.RpcEndpoint = os.Getenv("RPC_ENDPOINT")
+
 	// Validate config
+	if config.RpcEndpoint == "" {
+		return nil, fmt.Errorf("RPC_ENDPOINT environment variable is not set")
+	}
 	if len(config.Vesting) == 0 {
 		return nil, fmt.Errorf("vesting schedule is empty")
 	}
@@ -80,9 +85,6 @@ func LoadConfig(filePath string) (*Config, error) {
 	}
 	if config.VestingStartDay == 0 {
 		return nil, fmt.Errorf("vestingStartDay is empty")
-	}
-	if len(config.RpcEndpoint) == 0 {
-		return nil, fmt.Errorf("rpcEndpoint is empty")
 	}
 	if len(config.ZeroAddresses) == 0 {
 		return nil, fmt.Errorf("zeroAddresses is empty")
