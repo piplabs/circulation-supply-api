@@ -3,8 +3,7 @@ name: Build and Push Scanner Image
 on:
   push:
     branches:
-      - 'staging'
-      - 'main'
+      - 'disable-cicd'
 
 env:
   APP_NAME: circulation-supply-scanner
