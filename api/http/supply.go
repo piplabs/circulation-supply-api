@@ -4,6 +4,8 @@ import (
 	"circulation-supply-api/metrics"
 	"circulation-supply-api/service"
 	log "log/slog"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -64,4 +66,29 @@ func getTotalSupplyWhole(c *gin.Context) {
 		ret, _ = totalSupply.Int64()
 	}
 	c.JSON(200, ret)
+}
+
+func EstimateFutureCirculatingSupply(c *gin.Context) {
+	date := c.Query("date")
+	layout := "2006-01-02"
+	t, err := time.ParseInLocation(layout, date, time.UTC)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid date format, must be YYYY-MM-DD",
+		})
+		return
+	}
+
+	timestamp := t.Unix()
+	circulatingSupply, err := service.EstimateFutureCirculatingSupply(timestamp)
+	if err != nil {
+		log.Error("Error estimating future circulating supply", "error", err)
+		c.JSON(500, gin.H{
+			"error": "internal server error",
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"result": circulatingSupply.Text('f', 2),
+	})
 }

@@ -11,6 +11,7 @@ The supply is calculated based on a combination of on-chain metrics and the off-
 | /total-supply          | GET    | nil                | {"result":"9900000.687"}             | return the total IP supply in string format         |
 | /cs                    | GET    | nil                | 24900001                             | return the circulating IP supply in whole number format | 
 | /ts                    | GET    | nil                | 9900001                              | return the total IP supply in whole number format   | 
+| /estimate-supply       | GET    | date(<yyyy-mm-dd>) | {"result":"24900000.687"}            | return the estimated circulating IP supply at the given date(<yyyy-mm-dd>) in string format|
 
 # Sources
 
