@@ -80,6 +80,12 @@ func EstimateFutureCirculatingSupply(c *gin.Context) {
 	}
 
 	timestamp := t.Unix()
+	if timestamp < time.Now().UTC().Unix() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "date must be in the future",
+		})
+		return
+	}
 	circulatingSupply, err := service.EstimateFutureCirculatingSupply(timestamp)
 	if err != nil {
 		log.Error("Error estimating future circulating supply", "error", err)

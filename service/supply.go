@@ -215,10 +215,6 @@ func GetAccumulatedFees() (totalBurntBaseFee, totalStakeReward, totalStakedToken
 }
 
 func EstimateFutureCirculatingSupply(timestamp int64) (*big.Float, error) {
-	if timestamp < time.Now().UTC().Unix() {
-		return nil, fmt.Errorf("timestamp %d is in the past", timestamp)
-	}
-
 	vestedSupply, err := GetVestedSupply(big.NewInt(timestamp))
 	if err != nil {
 		return nil, err
