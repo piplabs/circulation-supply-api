@@ -3,7 +3,8 @@ name: Build and Push API Image
 on:
   push:
     branches:
-      - 'disable-cicd'
+      - 'staging'
+      - 'main'
 
 env:
   APP_NAME: circulation-supply-api
