@@ -21,6 +21,9 @@ func StartHTTPServer() {
 	// used by CMC
 	r.GET("/cs", getCirculatingSupplyWhole)
 	r.GET("/ts", getTotalSupplyWhole)
+
+	// estimate future circulating supply based on timestamp
+	r.GET("/estimate-supply", EstimateFutureCirculatingSupply)
 	err := r.Run()
 	if err != nil {
 		panic(err)

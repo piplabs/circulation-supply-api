@@ -13,6 +13,13 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	// TODO: dynamically adjust the average block time. Now it is hardcoded to 2.36 seconds.
+	averageBlockTime = 2.36
+	blockReward      = 1.929
+	mintPerSec       = blockReward / averageBlockTime
+)
+
 var (
 	cachedTotalSupply     *big.Float
 	cachedTotalSupplyTime = time.Now()
@@ -21,6 +28,12 @@ var (
 	cachedCirculatingSupplyTime = time.Now()
 
 	cacheDuration = 30 * time.Second
+)
+
+var (
+	cachedTotalBurnt   *big.Float
+	cachedMintedSupply *big.Float
+	cachedBlockTime    *big.Int
 )
 
 // 1. Get latest block from database
@@ -41,15 +54,10 @@ func GetCirculatingSupply() (*big.Float, error) {
 	}
 
 	var vestedSupply *big.Float
-	monthsPassed := MonthsPassedSinceGenesis(blockTime)
-	if monthsPassed < 0 {
-		// this should never happen in mainnet
-		log.Warn("Invalid timestamp", "blockTime", blockTime, "monthsPassed", monthsPassed)
-		vestedSupply = big.NewFloat(config.Conf.Vesting[0])
-	} else if monthsPassed >= len(config.Conf.Vesting) {
-		vestedSupply = big.NewFloat(config.Conf.Vesting[len(config.Conf.Vesting)-1])
-	} else {
-		vestedSupply = big.NewFloat(config.Conf.Vesting[monthsPassed])
+	blockTimestamp, _ := new(big.Int).SetString(blockTime, 0)
+	vestedSupply, err = GetVestedSupply(blockTimestamp)
+	if err != nil {
+		return nil, err
 	}
 	circulatingSupply := new(big.Float).Sub(vestedSupply, totalBurntBaseFee).SetPrec(64)
 	circulatingSupply.Sub(circulatingSupply, ipSentToZeroAddress)
@@ -59,7 +67,7 @@ func GetCirculatingSupply() (*big.Float, error) {
 	circulatingSupply.Add(circulatingSupply, totalStakedToken)
 	log.Info("Show details - ", "vestedSupply", vestedSupply.Text('f', -1), "totalBurntBaseFee",
 		totalBurntBaseFee.Text('f', -1), "IPSentToZeroAddress", ipSentToZeroAddress.Text('f', -1), "totalStakedToken", totalStakedToken.Text('f', -1),
-		"totalStakeReward", totalStakeReward.Text('f', -1), "circulatingSupply", circulatingSupply.Text('f', -1), "monthsPassed", monthsPassed)
+		"totalStakeReward", totalStakeReward.Text('f', -1), "circulatingSupply", circulatingSupply.Text('f', -1), "blockTime", blockTime)
 
 	cachedCirculatingSupply = circulatingSupply
 	cachedCirculatingSupplyTime = time.Now()
@@ -101,9 +109,24 @@ func GetTotalSupply() (*big.Float, error) {
 	return totalSupply, nil
 }
 
+func GetVestedSupply(timestamp *big.Int) (*big.Float, error) {
+	var vestedSupply *big.Float
+	monthsPassed := MonthsPassedSinceGenesis(timestamp)
+	if monthsPassed < 0 {
+		log.Warn("Invalid timestamp", "blockTime", timestamp, "monthsPassed", monthsPassed)
+		vestedSupply = big.NewFloat(config.Conf.Vesting[0])
+		return vestedSupply, errors.New("timestamp is before vesting start date")
+	}
+	if monthsPassed >= len(config.Conf.Vesting) {
+		vestedSupply = big.NewFloat(config.Conf.Vesting[len(config.Conf.Vesting)-1])
+	} else {
+		vestedSupply = big.NewFloat(config.Conf.Vesting[monthsPassed])
+	}
+	return vestedSupply, nil
+}
+
 // Returns the number of months passed since the genesis block, adjusted for the vesting schedule.
-func MonthsPassedSinceGenesis(blockTime string) int {
-	blockTimestamp, _ := new(big.Int).SetString(blockTime, 0)
+func MonthsPassedSinceGenesis(blockTimestamp *big.Int) int {
 	year, month, day := time.Unix(blockTimestamp.Int64(), 0).UTC().Date()
 	monthsPassed := (year-config.Conf.VestingStartYear)*12 + int(month-time.Month(config.Conf.VestingStartMonth))
 
@@ -189,4 +212,48 @@ func GetAccumulatedFees() (totalBurntBaseFee, totalStakeReward, totalStakedToken
 	}
 	ipSentToZeroAddress = new(big.Float).Quo(new(big.Float).SetInt(totalBalance), big.NewFloat(1e18))
 	return
+}
+
+func EstimateFutureCirculatingSupply(timestamp int64) (*big.Float, error) {
+	vestedSupply, err := GetVestedSupply(big.NewInt(timestamp))
+	if err != nil {
+		return nil, err
+	}
+
+	// if cachedBlockTime is not nil and within 12 hours, use cached values
+	var latestBurnt *big.Float
+	var latestMint *big.Float
+	var latestRecordBlockTime *big.Int
+
+	if cachedBlockTime != nil && time.Since(time.Unix(cachedBlockTime.Int64(), 0)) < 12*time.Hour {
+		latestBurnt = cachedTotalBurnt
+		latestMint = cachedMintedSupply
+		latestRecordBlockTime = cachedBlockTime
+	} else {
+		totalBurntBaseFee, totalStakeReward, totalStakedToken, ipSentToZeroAddress, blockTime, err := GetAccumulatedFees()
+		if err != nil {
+			return nil, err
+		}
+		latestBurnt = new(big.Float).SetPrec(64)
+		latestBurnt.Add(latestBurnt, totalBurntBaseFee)
+		latestBurnt.Add(latestBurnt, ipSentToZeroAddress)
+		latestBurnt.Sub(latestBurnt, totalStakedToken)
+
+		latestMint = totalStakeReward
+		latestRecordBlockTime, _ = new(big.Int).SetString(blockTime, 0)
+
+		// cache the values for future use
+		cachedTotalBurnt = latestBurnt
+		cachedMintedSupply = latestMint
+		cachedBlockTime = latestRecordBlockTime
+	}
+
+	// calculate how many seconds passed since the latest recorded block
+	secondsPassed := timestamp - latestRecordBlockTime.Int64()
+	futureMint := new(big.Float).Add(latestMint, new(big.Float).Mul(new(big.Float).SetFloat64(mintPerSec), new(big.Float).SetInt64(secondsPassed)))
+
+	// calculate the future circulating supply
+	futureCirculatingSupply := new(big.Float).Sub(vestedSupply, latestBurnt)
+	futureCirculatingSupply.Add(futureCirculatingSupply, futureMint)
+	return futureCirculatingSupply, nil
 }
