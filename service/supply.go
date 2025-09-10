@@ -13,13 +13,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	// TODO: dynamically adjust the average block time. Now it is hardcoded to 2.36 seconds.
-	averageBlockTime = 2.36
-	blockReward      = 1.929
-	mintPerSec       = blockReward / averageBlockTime
-)
-
 var (
 	cachedTotalSupply     *big.Float
 	cachedTotalSupplyTime = time.Now()
@@ -250,6 +243,8 @@ func EstimateFutureCirculatingSupply(timestamp int64) (*big.Float, error) {
 
 	// calculate how many seconds passed since the latest recorded block
 	secondsPassed := timestamp - latestRecordBlockTime.Int64()
+	blockTimeLock.RLock()
+	defer blockTimeLock.RUnlock()
 	futureMint := new(big.Float).Add(latestMint, new(big.Float).Mul(new(big.Float).SetFloat64(mintPerSec), new(big.Float).SetInt64(secondsPassed)))
 
 	// calculate the future circulating supply

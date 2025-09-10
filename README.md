@@ -11,7 +11,7 @@ The supply is calculated based on a combination of on-chain metrics and the off-
 | /total-supply          | GET    | nil                | {"result":"9900000.687"}             | return the total IP supply in string format         |
 | /cs                    | GET    | nil                | 24900001                             | return the circulating IP supply in whole number format | 
 | /ts                    | GET    | nil                | 9900001                              | return the total IP supply in whole number format   | 
-| /estimate-supply       | GET    | date(<yyyy-mm-dd>) | {"result":"24900000.687"}            | return the estimated circulating IP supply at the given date(<yyyy-mm-dd>) in string format|
+| /estimate-supply?date=2025-10-13       | GET    | date(format:yyyy-mm-dd) | {"result":"24900000.687"}            | return the estimated circulating IP supply at the given date in format yyyy-mm-dd|
 
 # Sources
 
@@ -74,6 +74,14 @@ Recommend: 1 core CPU &  256m MEM
     d.  Get the balance of the zero address at the latest block
     e. Get genesis total supply from vesting plan
     f. Calculate the total supply = genesis total supply - totalBurntBaseFee - IPSentToZeroAddress +totalStakedToken + totalStakeReward
+3. `/estimate-supply`
+    a. Get the date parameter from request
+    b. Convert date to timestamp
+    c. Return error if the date is before time.now
+    d. Get the vested supply from vesting plan based on the number of months passed
+    e. Get the recent record within 12 hours 
+    f. Calculate the estimated minted tokens based on the number of blocks passed since the recent record
+    g. Calculate the estimated circulating supply = vested supply - currentBurnt + estimatedMinted
 
 ## Notes
 1. How to estimate minted tokens:

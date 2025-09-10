@@ -5,6 +5,7 @@ import (
 	"circulation-supply-api/config"
 	"circulation-supply-api/dao"
 	"circulation-supply-api/metrics"
+	"circulation-supply-api/service"
 	"flag"
 	"fmt"
 	"log"
@@ -23,6 +24,8 @@ func main() {
 		log.Fatalf("Error loading config: %v", err)
 	}
 	dao.InitDB()
+
+	service.StartBlockTimeCronjob()
 
 	go metrics.StartMetricsServer(fmt.Sprintf("%s:%d", config.Conf.Metric.Listen, config.Conf.Metric.Port))
 
