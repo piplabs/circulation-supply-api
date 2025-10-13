@@ -252,3 +252,76 @@ func EstimateFutureCirculatingSupply(timestamp int64) (*big.Float, error) {
 	futureCirculatingSupply.Add(futureCirculatingSupply, futureMint)
 	return futureCirculatingSupply, nil
 }
+
+type SupplyDelta struct {
+	StartTime      string `json:"start_time"`
+	EndTime        string `json:"end_time"`
+	TotalDelta     string `json:"total_delta"`
+	InflationDelta string `json:"inflation_delta"`
+	VestingDelta   string `json:"vesting_delta"`
+}
+
+// totalSupplyDelta = inflationDelta + vestingDelta
+// inflationDelta = minted - burnt
+func GetSupplyDelta(startTime, endTime int64) (*SupplyDelta, error) {
+	var inflationDelta, vestingDelta *big.Float
+	var err error
+
+	inflationDelta, err = getInflationDelta(startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+
+	vestingDelta, err = getVestingDelta(startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+
+	totalSupplyDelta := new(big.Float).Set(inflationDelta)
+	totalSupplyDelta.Add(totalSupplyDelta, vestingDelta)
+
+	return &SupplyDelta{
+		StartTime:      time.Unix(startTime, 0).Format(time.DateOnly),
+		EndTime:        time.Unix(endTime, 0).Format(time.DateOnly),
+		TotalDelta:     totalSupplyDelta.Text('f', 2),
+		InflationDelta: inflationDelta.Text('f', 2),
+		VestingDelta:   vestingDelta.Text('f', 2),
+	}, nil
+}
+
+// inflationDelta = mintPerSec * (endTime - startTime) - burntDelta
+func getInflationDelta(startTime, endTime int64) (*big.Float, error) {
+	// calculate minted amount
+	blockTimeLock.RLock()
+	seconds := endTime - startTime
+	inflationDelta := new(big.Float).Mul(new(big.Float).SetFloat64(mintPerSec), new(big.Float).SetInt64(seconds))
+	blockTimeLock.RUnlock()
+
+	// calculate burnt amount
+	burntDelta, err := getBurntDelta(startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	inflationDelta.Sub(inflationDelta, burntDelta)
+	return inflationDelta, nil
+}
+
+func getVestingDelta(startTime, endTime int64) (*big.Float, error) {
+	startVestedSupply, err := GetVestedSupply(big.NewInt(startTime))
+	if err != nil {
+		return nil, err
+	}
+	endVestedSupply, err := GetVestedSupply(big.NewInt(endTime))
+	if err != nil {
+		return nil, err
+	}
+	vestingDelta := new(big.Float).Sub(endVestedSupply, startVestedSupply)
+	return vestingDelta, nil
+}
+
+func getBurntDelta(startTime, endTime int64) (*big.Float, error) {
+	// Ignore burnt delta for now, reasons:
+	// 1. burnt amount is very small compared to total supply
+	// 2. now this is for future estimation only, if this is for historical analysis, we need to store the burnt amount for each day
+	return big.NewFloat(0), nil
+}

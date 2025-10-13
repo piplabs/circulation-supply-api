@@ -98,3 +98,52 @@ func EstimateFutureCirculatingSupply(c *gin.Context) {
 		"result": circulatingSupply.Text('f', 2),
 	})
 }
+
+func getSupplyDelta(c *gin.Context) {
+	startDate := c.Query("from")
+	endDate := c.Query("to")
+	layout := "2006-01-02"
+	startTime, err := time.ParseInLocation(layout, startDate, time.UTC)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid start date format, must be YYYY-MM-DD",
+		})
+		return
+	}
+	endTime, err := time.ParseInLocation(layout, endDate, time.UTC)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid end date format, must be YYYY-MM-DD",
+		})
+		return
+	}
+	if endTime.Before(startTime) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "end date must be after start date",
+		})
+		return
+	}
+
+	// TODO: remove this check when historical data is available
+	// start time is yyyy-mm-dd, check if start time is in the current day, if in current day but before current timestamp, use start time. if start time is before current day, return error
+	isCurDay := startTime.Year() == time.Now().UTC().Year() && startTime.YearDay() == time.Now().UTC().YearDay()
+	if startTime.Before(time.Now().UTC()) && !isCurDay {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "start date must not be in the past",
+		})
+		return
+	}
+
+	supplyDelta, err := service.GetSupplyDelta(startTime.Unix(), endTime.Unix())
+	if err != nil {
+		log.Error("Error getting supply delta", "error", err)
+		c.JSON(500, gin.H{
+			"error": "internal server error",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"result": supplyDelta,
+	})
+}

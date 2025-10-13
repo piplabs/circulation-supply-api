@@ -12,6 +12,7 @@ The supply is calculated based on a combination of on-chain metrics and the off-
 | /cs                    | GET    | nil                | 24900001                             | return the circulating IP supply in whole number format | 
 | /ts                    | GET    | nil                | 9900001                              | return the total IP supply in whole number format   | 
 | /estimate-supply?date=2025-10-13       | GET    | date(format:yyyy-mm-dd) | {"result":"24900000.687"}            | return the estimated circulating IP supply at the given date in format yyyy-mm-dd|
+| /supplydelta?from=2025-10-13&to=2025-11-13 | GET    | from(format:yyyy-mm-dd), to(format:yyyy-mm-dd) | {"startTime":"2025-10-13","endTime":"2025-11-13","totalDelta":"12345.67","inflationDelta":"2345.67","vestingDelta":"10000.00"} | return the supply delta between two dates, including total delta, inflation delta and vesting delta |
 
 # Sources
 
