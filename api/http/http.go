@@ -24,6 +24,10 @@ func StartHTTPServer() {
 
 	// estimate future circulating supply based on timestamp
 	r.GET("/estimate-supply", EstimateFutureCirculatingSupply)
+
+	// get supply delta between two timestamps
+	r.GET("/supplydelta", getSupplyDelta)
+
 	err := r.Run()
 	if err != nil {
 		panic(err)
