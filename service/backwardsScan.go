@@ -18,6 +18,7 @@ var (
 	BackwardsStakedToken *big.Float
 )
 
+// Deprecated
 // Iterate from current block/last block to a configurable block number
 func BackwardsScanTrace() {
 	// short circuit to disable backwards scan

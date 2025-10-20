@@ -1,9 +1,12 @@
 package http
 
 import (
+	"circulation-supply-api/dao"
 	"circulation-supply-api/metrics"
 	"circulation-supply-api/service"
+	"errors"
 	log "log/slog"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -145,5 +148,45 @@ func getSupplyDelta(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"result": supplyDelta,
+	})
+}
+
+func getHistoryTotalSupply(c *gin.Context) {
+	blockStr := c.Query("block")
+	blockNumber, ok := new(big.Int).SetString(blockStr, 10)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid block number",
+		})
+		return
+	}
+
+	totalSupply, err := service.GetHistoryTotalSupply(blockNumber.Uint64())
+	if err != nil {
+		if errors.Is(err, dao.ErrRecordNotFound) {
+			oldestBlock, latestBlock, err := service.GetHistoryRange()
+			if err != nil {
+				log.Error("Error getting history range", "error", err)
+				c.JSON(500, gin.H{
+					"error": "internal server error",
+				})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"result":         "syncing",
+				"available_from": oldestBlock,
+				"available_to":   latestBlock,
+			})
+			return
+		}
+		log.Error("Error getting history total supply", "error", err)
+		c.JSON(500, gin.H{
+			"error": "internal server error",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"result": totalSupply.Text('f', 2),
 	})
 }

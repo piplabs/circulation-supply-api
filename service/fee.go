@@ -13,6 +13,10 @@ func saveAccumulatedFees(block uint64, totalBurntBaseFee *big.Float, totalStakeR
 	return dao.SaveAccumulatedFees(block, totalBurntBaseFee.Text('f', -1), totalStakeReward.Text('f', -1), totalStakedToken.Text('f', -1))
 }
 
+func BatchAddHistoryAccumulatedFees(fees []dao.HistoryAccumulatedFees) error {
+	return dao.BatchAddHistoryAccumulatedFees(fees)
+}
+
 // load retrieves the latest accumulated fees from the database.
 func load() (uint64, *big.Float, *big.Float, *big.Float, error) {
 	fee, err := dao.GetLatestAccumulatedFees()
@@ -38,4 +42,8 @@ func load() (uint64, *big.Float, *big.Float, *big.Float, error) {
 		return 0, totalBurntBaseFee, totalStakeReward, big.NewFloat(0).SetPrec(64), fmt.Errorf("error parsing total staked token")
 	}
 	return fee.BlockNumber + 1, totalBurntBaseFee, totalStakeReward, totalStakedToken, nil
+}
+
+func GetOldestAccumulatedFees() (*dao.HistoryAccumulatedFees, error) {
+	return dao.GetOldestHistoryAccumulatedFees()
 }

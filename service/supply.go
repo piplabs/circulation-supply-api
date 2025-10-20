@@ -325,3 +325,64 @@ func getBurntDelta(startTime, endTime int64) (*big.Float, error) {
 	// 2. now this is for future estimation only, if this is for historical analysis, we need to store the burnt amount for each day
 	return big.NewFloat(0), nil
 }
+
+// GetHistoryTotalSupply retrieves the total supply at a specific block number.
+func GetHistoryTotalSupply(blockNumber uint64) (*big.Float, error) {
+	var fee *dao.HistoryAccumulatedFees
+	var b bool
+	var err error
+
+	fee, err = dao.GetHistoryAccumulatedFeesByBlockNumber(blockNumber)
+	if err != nil || fee == nil {
+		log.Error("Failed to get latest accumulated fees", "error", err)
+		return nil, err
+	}
+	totalBurntBaseFee, b = new(big.Float).SetString(fee.TotalBurntBaseFee)
+	if !b {
+		err = fmt.Errorf("error parsing total burnt base fee")
+		return nil, err
+	}
+	totalStakeReward, b = new(big.Float).SetString(fee.TotalStakeReward)
+	if !b {
+		err = fmt.Errorf("error parsing total stake reward")
+		return nil, err
+	}
+	totalStakedToken, b := new(big.Float).SetString(fee.TotalStakedToken)
+	if !b {
+		err = fmt.Errorf("error parsing total staked token")
+		return nil, err
+	}
+
+	totalBalance := big.NewInt(0)
+	for _, zeroAddress := range config.Conf.ZeroAddresses {
+		var balance *big.Int
+		balance, err = getBalanceAtBlock(zeroAddress, blockNumber)
+		if err != nil {
+			log.Error("Failed to get zero address balance", "address", zeroAddress, "error", err)
+			return nil, err
+		}
+		totalBalance.Add(totalBalance, balance)
+	}
+	ipSentToZeroAddress := new(big.Float).Quo(new(big.Float).SetInt(totalBalance), big.NewFloat(1e18))
+
+	totalSupply := big.NewFloat(config.Conf.GenesisTotalSupply).SetPrec(64)
+	totalSupply.Sub(totalSupply, totalBurntBaseFee)
+	totalSupply.Sub(totalSupply, ipSentToZeroAddress)
+	totalSupply.Add(totalSupply, totalStakeReward)
+	// ipSentToZeroAddress contains totalStakedToken, so we need to add it back
+	totalSupply.Add(totalSupply, totalStakedToken)
+
+	return totalSupply, nil
+}
+
+func GetHistoryRange() (uint64, uint64, error) {
+	oldest, err := dao.GetOldestHistoryAccumulatedFees()
+	if err != nil {
+		return 0, 0, err
+	}
+	latest, err := dao.GetLatestHistoryAccumulatedFees()
+	if err != nil {
+		return 0, 0, err
+	}
+	return oldest.BlockNumber, latest.BlockNumber, nil
+}
