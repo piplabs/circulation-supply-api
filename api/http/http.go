@@ -28,6 +28,9 @@ func StartHTTPServer() {
 	// get supply delta between two timestamps
 	r.GET("/supplydelta", getSupplyDelta)
 
+	// get historical total supply data
+	r.GET("/history/total-supply", getHistoryTotalSupply)
+
 	err := r.Run()
 	if err != nil {
 		panic(err)
