@@ -353,6 +353,23 @@ func GetHistoryTotalSupply(blockNumber uint64) (*big.Float, error) {
 		return nil, err
 	}
 
+	// get backwards staked token
+	_, amount, err := dao.GetBackwardsStakedToken()
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			amount = "0"
+		} else {
+			log.Error("Failed to get backwards staked token", "error", err)
+			return nil, err
+		}
+	}
+	backwardsStakedToken, b := new(big.Float).SetString(amount)
+	if !b {
+		err = fmt.Errorf("error parsing backwards staked token")
+		return nil, err
+	}
+	totalStakedToken.Add(totalStakedToken, backwardsStakedToken)
+
 	totalBalance := big.NewInt(0)
 	for _, zeroAddress := range config.Conf.ZeroAddresses {
 		var balance *big.Int
