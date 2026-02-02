@@ -11,7 +11,7 @@ import (
 const (
 	BlockReward = 1.929
 
-	BlockRewardSinceHoraceUpgrade = 1.1657
+	BlockRewardSinceHoraceUpgrade = 1.16552511
 	HoraceUpgradeHeight           = 13780500
 )
 
