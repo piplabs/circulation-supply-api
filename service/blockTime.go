@@ -10,6 +10,9 @@ import (
 
 const (
 	BlockReward = 1.929
+
+	BlockRewardSinceHoraceUpgrade = 1.1657
+	HoraceUpgradeHeight           = 13780500
 )
 
 var blockTimeLock = &sync.RWMutex{}
@@ -66,7 +69,14 @@ func CalculateAverageBlockTime() error {
 
 	blockTimeLock.Lock()
 	defer blockTimeLock.Unlock()
-	mintPerSec, _ = new(big.Float).SetPrec(64).Quo(new(big.Float).SetFloat64(BlockReward), averageBlockTime).Float64()
+	var blockReward = BlockReward
+	if olderBlockNumber.Cmp(big.NewInt(HoraceUpgradeHeight)) >= 0 {
+		blockReward = BlockRewardSinceHoraceUpgrade
+		log.Info("Using block reward since Horace upgrade", "blockReward", blockReward)
+	} else {
+		log.Info("Using block reward before Horace upgrade", "blockReward", blockReward)
+	}
+	mintPerSec, _ = new(big.Float).SetPrec(64).Quo(new(big.Float).SetFloat64(blockReward), averageBlockTime).Float64()
 	log.Info("Mint per second updated", "mintPerSec", mintPerSec)
 
 	return nil
