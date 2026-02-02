@@ -15,8 +15,14 @@ vesting:
  - 305616664
  - 312568747
  - 319520830
- - 326472913
- - 427499996
+ - 326472913 # 2026-01-13
+ - 326472913 # 2026-02-13. Vesting amount for 2026-01-13 is now extended to 2026-07-13 due to the token release extension.
+ - 326472913 # 2026-03-13
+ - 326472913 # 2026-04-13
+ - 326472913 # 2026-05-13
+ - 326472913 # 2026-06-13
+ - 326472913 # 2026-07-13
+ - 427499996 # 2026-08-13. This is the original vesting amount for 2026-02-13, but due to the token release extension, it is now the vesting amount for 2026-08-13.
  - 445655899
  - 463811802
  - 481967705
