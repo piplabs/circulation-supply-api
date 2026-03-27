@@ -34,7 +34,7 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           APP_NAME: ${{ needs.define-params.outputs.app_name }}
         run: |
-          docker build -f ./dockerfiles/scanner.Dockerfile -t $REGISTRY/$APP_NAME:${{ github.sha }} .
+          docker build -f ./dockerfiles/api.Dockerfile -t $REGISTRY/$APP_NAME:${{ github.sha }} .
           docker push $REGISTRY/$APP_NAME:${{ github.sha }}
 
   update-helm-tag:
