@@ -1,0 +1,44 @@
+name: "Update Helm Image Tag"
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        description: "Name of the application"
+        required: true
+        type: string
+      helm_file_path:
+        description: "Path to the Helm values file in story-helm repo (e.g. story/story-api/use1-stage.yaml)"
+        required: true
+        type: string
+      image_tag:
+        description: "The new image tag to set"
+        required: true
+        type: string
+jobs:
+  update-helm-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout story-helm repository
+        uses: actions/checkout@v4
+        with:
+          repository: storyprotocol/story-helm
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update image tag
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq -i '.image.tag = "${{ inputs.image_tag }}"' '${{ inputs.helm_file_path }}'
+
+      - name: Commit and push
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git fetch && git checkout main
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Nothing to commit, working directory clean"
+          else
+            git commit -am "${{ inputs.app_name }}: Update image tag to ${{ inputs.image_tag }}"
+            git push
+          fi
