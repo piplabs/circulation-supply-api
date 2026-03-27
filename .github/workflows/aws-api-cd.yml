@@ -43,4 +43,5 @@ jobs:
       app_name: ${{ needs.define-params.outputs.app_name }}
       helm_file_path: "story-helm/circulation-supply/circulation-supply-api/use1-stage.yaml"
       image_tag: ${{ needs.define-params.outputs.image_tag }}
-    secrets: inherit
+    secrets:
+      helm_repo_token: ${{ secrets.HELM_REPO_TOKEN }}

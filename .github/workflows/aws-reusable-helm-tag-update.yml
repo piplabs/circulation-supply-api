@@ -15,6 +15,14 @@ on:
         description: "The new image tag to set"
         required: true
         type: string
+    secrets:
+      helm_repo_token:
+        description: "GitHub token with access to the story-helm repository"
+        required: true
+
+permissions:
+  contents: read
+
 jobs:
   update-helm-tag:
     runs-on: ubuntu-latest
@@ -24,10 +32,10 @@ jobs:
         with:
           repository: storyprotocol/story-helm
           ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.helm_repo_token }}
 
       - name: Update image tag
-        uses: mikefarah/yq@master
+        uses: mikefarah/yq@v4.52.5
         with:
           cmd: yq -i '.image.tag = "${{ inputs.image_tag }}"' '${{ inputs.helm_file_path }}'
 
