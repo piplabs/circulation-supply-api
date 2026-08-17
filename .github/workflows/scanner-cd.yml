@@ -90,12 +90,12 @@ jobs:
     steps:
       - name: Check deploy configuration
         env:
-          PUSH_TOKEN: ${{ secrets.STORY_DEPLOYMENTS_PUSH_TOKEN }}
+          DEPLOY_KEY: ${{ secrets.STORY_DEPLOYMENTS_DEPLOY_KEY }}
           CLUSTER_NAME: ${{ vars.CLUSTER_NAME }}
         run: |
           set -euo pipefail
-          if [ -z "${PUSH_TOKEN}" ]; then
-            echo "Missing secret STORY_DEPLOYMENTS_PUSH_TOKEN (needs contents:write on thedatafoundation/story-deployments)"
+          if [ -z "${DEPLOY_KEY}" ]; then
+            echo "Missing secret STORY_DEPLOYMENTS_DEPLOY_KEY (write deploy key on thedatafoundation/story-deployments)"
             exit 1
           fi
           if [ -z "${CLUSTER_NAME}" ]; then
@@ -108,7 +108,7 @@ jobs:
         with:
           repository: thedatafoundation/story-deployments
           ref: main
-          token: ${{ secrets.STORY_DEPLOYMENTS_PUSH_TOKEN }}
+          ssh-key: ${{ secrets.STORY_DEPLOYMENTS_DEPLOY_KEY }}
           path: story-deployments
 
       - name: Bump image tag and push
