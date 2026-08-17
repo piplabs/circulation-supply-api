@@ -48,7 +48,7 @@ jobs:
         with:
           repository: storyprotocol/story-helm
           ref: main
-          token: ${{ secrets.CICD_GIT_TOKEN }}
+          token: ${{ secrets.HELM_REPO_TOKEN }}
       
       - name: Update Image Tag
         uses: mikefarah/yq@master
