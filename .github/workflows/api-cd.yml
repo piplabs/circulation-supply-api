@@ -6,13 +6,16 @@ on:
       - 'staging'
       - 'main'
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   APP_NAME: circulation-supply-api
-  CLUSTER_NAME: ${{ vars.CLUSTER_NAME }}
 
 jobs:
-  build-and-update:
-    name: Build and Push Image, Update Helm Chart
+  build:
+    name: Build and Push Image
     runs-on: ubuntu-latest
 
     environment: ${{ (github.ref_name == 'main') && 'production' || 'staging' }}
@@ -21,50 +24,154 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Authenticate with GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+      - name: Check build configuration
+        env:
+          ROLE_ARN: ${{ vars.AWS_GITHUB_ROLE_ARN }}
+          REGION: ${{ vars.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ROLE_ARN}" ]; then
+            echo "Missing variable AWS_GITHUB_ROLE_ARN (ops account ECR push role)"
+            exit 1
+          fi
+          if [ -z "${REGION}" ]; then
+            echo "Missing variable AWS_REGION"
+            exit 1
+          fi
 
-      - name: Configure Docker for GCP
-        run: gcloud auth configure-docker
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_GITHUB_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Verify ECR repository exists
+        env:
+          REGION: ${{ vars.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          aws ecr describe-repositories \
+            --region "${REGION}" \
+            --repository-names "${APP_NAME}" >/dev/null
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build and Push Docker Image
-        run: |
-          IMAGE_NAME=gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.APP_NAME }}:${{ github.sha }}
-          docker build \
-            --push \
-            --tag $IMAGE_NAME \
-            -f ./dockerfiles/api.Dockerfile \
-            .
-        env:
-          IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.APP_NAME }}:${{ github.sha }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./dockerfiles/api.Dockerfile
+          push: true
+          provenance: false
+          sbom: false
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.APP_NAME }}:${{ github.sha }}
 
-      - name: Checkout Target Repository
+      - name: Remove cached registry credentials from the runner
+        if: always()
+        run: rm -f /home/runner/.docker/config.json
+
+  bump-story-deployments:
+    name: Bump story-deployments image tag
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    environment: ${{ (github.ref_name == 'main') && 'production' || 'staging' }}
+
+    # Serialized with the scanner workflow: both push to story-deployments main.
+    concurrency:
+      group: story-deployments-tag-bump-circulation-supply
+      cancel-in-progress: false
+
+    steps:
+      - name: Check deploy configuration
+        env:
+          PUSH_TOKEN: ${{ secrets.STORY_DEPLOYMENTS_PUSH_TOKEN }}
+          CLUSTER_NAME: ${{ vars.CLUSTER_NAME }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PUSH_TOKEN}" ]; then
+            echo "Missing secret STORY_DEPLOYMENTS_PUSH_TOKEN (needs contents:write on thedatafoundation/story-deployments)"
+            exit 1
+          fi
+          if [ -z "${CLUSTER_NAME}" ]; then
+            echo "Missing environment variable CLUSTER_NAME"
+            exit 1
+          fi
+
+      - name: Checkout story-deployments (main)
         uses: actions/checkout@v4
         with:
-          repository: storyprotocol/story-helm
+          repository: thedatafoundation/story-deployments
           ref: main
-          token: ${{ secrets.CICD_GIT_TOKEN }}
-      
-      - name: Update Image Tag
-        uses: mikefarah/yq@master
-        with:
-          cmd: |
-            yq -i '.image.tag = "${{ github.sha }}"' 'circulation-supply/${{ env.APP_NAME }}/${{ env.CLUSTER_NAME }}.yaml'
+          token: ${{ secrets.STORY_DEPLOYMENTS_PUSH_TOKEN }}
+          path: story-deployments
 
-      - name: Push Changed Image Tag
+      - name: Bump image tag and push
+        working-directory: story-deployments
+        env:
+          TARGET_TAG: ${{ github.sha }}
+          VALUES_FILE: circulation-supply/${{ env.APP_NAME }}/${{ vars.CLUSTER_NAME }}.yaml
+          ENV_LABEL: ${{ (github.ref_name == 'main') && 'prod' || 'stage' }}
         run: |
-          git config --global user.name ${{ github.actor }}
-          git config --global user.email ${{ github.actor }}@users.noreply.github.com
-          git fetch && git checkout main
+          set -euo pipefail
 
-          if [ -z "$(git status --porcelain)" ]
-          then
-            echo "Nothing to commit, working directory clean"
-          else
-            git commit -am "${{ env.APP_NAME }}: Update image tag to ${{ github.sha }}" && git push
+          # Rewrite only the tag line inside the image block, so comments and
+          # formatting elsewhere in the values file stay untouched.
+          python3 - "$TARGET_TAG" "$VALUES_FILE" <<'PY'
+          import sys
+
+          target, path = sys.argv[1], sys.argv[2]
+          with open(path, encoding="utf-8") as f:
+            lines = f.readlines()
+
+          out, in_image, image_indent, done = [], False, None, False
+          for line in lines:
+            if not done and line.lstrip().startswith("image:"):
+              in_image = True
+              image_indent = len(line) - len(line.lstrip())
+              out.append(line)
+              continue
+            if in_image and image_indent is not None:
+              indent = len(line) - len(line.lstrip())
+              if line.strip() and indent <= image_indent:
+                in_image, image_indent = False, None
+            if in_image and not done and line.lstrip().startswith("tag:"):
+              prefix = line[: len(line) - len(line.lstrip())]
+              out.append(f'{prefix}tag: "{target}"\n')
+              done = True
+              continue
+            out.append(line)
+
+          if not done:
+            raise SystemExit(f"Failed to find image.tag in {path}")
+
+          with open(path, "w", encoding="utf-8") as f:
+            f.writelines(out)
+          PY
+
+          if git diff --quiet -- "$VALUES_FILE"; then
+            echo "No changes; tag already ${TARGET_TAG}"
+            exit 0
           fi
+
+          git config user.name "circulation-supply-deploy-bot"
+          git config user.email "circulation-supply-deploy-bot@users.noreply.github.com"
+          git add "$VALUES_FILE"
+          git commit -m "chore(${ENV_LABEL}): bump ${APP_NAME} to ${TARGET_TAG}"
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin main; then
+              echo "Pushed on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Push raced; rebasing and retrying (attempt ${attempt})"
+            git pull --rebase origin main
+            sleep $((attempt * 2))
+          done
+          echo "Failed to push story-deployments update after retries"
+          exit 1
