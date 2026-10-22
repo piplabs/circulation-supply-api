@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o bin/api ./api/main.go
 
 FROM alpine:3.21
 
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add --upgrade ca-certificates
 
 RUN adduser -D -u 1000 appuser
 USER appuser
