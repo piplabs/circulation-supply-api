@@ -21,7 +21,46 @@ var (
 	cachedCirculatingSupplyTime = time.Now()
 
 	cacheDuration = 30 * time.Second
+
+	// The scanner stores block N as soon as one RPC node has it. The RPC
+	// endpoint is a load balancer, and the request for block N can reach a
+	// node that does not have the block yet. That node answers "header not
+	// found", or no block at all. A short retry gets past it.
+	blockRetryAttempts = 4
+	blockRetryDelay    = 500 * time.Millisecond
+
+	// When the retries also fail, the supply endpoints serve the last good
+	// value for this long. Without it they answer "syncing" or 0 with HTTP 200.
+	staleSupplyLimit = 10 * time.Minute
 )
+
+var errBlockNotFound = errors.New("block not found")
+
+// retryBlockRead calls fn until it gives no error, at most blockRetryAttempts
+// times, and returns the last error.
+func retryBlockRead(fn func() error) error {
+	var err error
+	for attempt := 1; attempt <= blockRetryAttempts; attempt++ {
+		if err = fn(); err == nil {
+			return nil
+		}
+		if attempt < blockRetryAttempts {
+			time.Sleep(blockRetryDelay)
+		}
+	}
+	return err
+}
+
+// lastGoodSupply gives the cached supply when a fresh read failed with err and
+// the cached value is not older than staleSupplyLimit. If not, it gives err.
+func lastGoodSupply(name string, cached *big.Float, cachedAt time.Time, err error) (*big.Float, error) {
+	if cached == nil || time.Since(cachedAt) > staleSupplyLimit {
+		return nil, err
+	}
+	log.Warn("Serving the last good supply after a failed read", "supply", name,
+		"age", time.Since(cachedAt).Round(time.Second).String(), "error", err)
+	return cached, nil
+}
 
 var (
 	cachedTotalBurnt   *big.Float
@@ -43,7 +82,7 @@ func GetCirculatingSupply() (*big.Float, error) {
 
 	totalBurntBaseFee, totalStakeReward, totalStakedToken, ipSentToZeroAddress, blockTime, err := GetAccumulatedFees()
 	if err != nil {
-		return nil, err
+		return lastGoodSupply("circulating", cachedCirculatingSupply, cachedCirculatingSupplyTime, err)
 	}
 
 	var vestedSupply *big.Float
@@ -82,7 +121,7 @@ func GetTotalSupply() (*big.Float, error) {
 
 	totalBurntBaseFee, totalStakeReward, totalStakedToken, ipSentToZeroAddress, _, err := GetAccumulatedFees()
 	if err != nil {
-		return nil, err
+		return lastGoodSupply("total", cachedTotalSupply, cachedTotalSupplyTime, err)
 	}
 
 	totalSupply := big.NewFloat(config.Conf.GenesisTotalSupply).SetPrec(64)
@@ -180,14 +219,16 @@ func GetAccumulatedFees() (totalBurntBaseFee, totalStakeReward, totalStakedToken
 	}
 	totalStakedToken.Add(totalStakedToken, backwardsStakedToken)
 
-	block, err = getBlockByNumber(fmt.Sprintf("0x%x", blockNumber))
+	err = retryBlockRead(func() error {
+		var readErr error
+		block, readErr = getBlockByNumber(fmt.Sprintf("0x%x", blockNumber))
+		if readErr == nil && block == nil {
+			readErr = errBlockNotFound
+		}
+		return readErr
+	})
 	if err != nil {
 		log.Error("Failed to get block by number", "blockNumber", blockNumber, "error", err)
-		return
-	}
-	if block == nil {
-		err = fmt.Errorf("block not found")
-		log.Error("Block not found", "blockNumber", blockNumber)
 		return
 	}
 	blockTime = block.Time
@@ -196,7 +237,11 @@ func GetAccumulatedFees() (totalBurntBaseFee, totalStakeReward, totalStakedToken
 	totalBalance := big.NewInt(0)
 	for _, zeroAddress := range config.Conf.ZeroAddresses {
 		var balance *big.Int
-		balance, err = getBalanceAtBlock(zeroAddress, blockNumber)
+		err = retryBlockRead(func() error {
+			var readErr error
+			balance, readErr = getBalanceAtBlock(zeroAddress, blockNumber)
+			return readErr
+		})
 		if err != nil {
 			log.Error("Failed to get zero address balance", "address", zeroAddress, "error", err)
 			return
